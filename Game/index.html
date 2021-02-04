@@ -1,0 +1,105 @@
+
+<html>
+  <head>
+    <title>Word Volley</title>
+    <link rel="preload" href="Fonts/BebasNeue-Regular.woff" as="font" />
+    <style type="text/css">
+      canvas 
+      { 
+        border: 0px; 
+      }
+      body 
+      {
+        margin:0;
+        padding:0;
+        height:100%;
+        overflow: hidden;
+      }
+      #mainDiv
+      {
+        position: relative;
+        background-color: #FFFFFF;
+        width: 1280;
+        left:50%;
+        margin-left:-640px;
+        height: 720px;
+        top:50%;
+        margin-top:-360px;
+      }
+
+      @font-face {
+        font-family: 'BebasNeue-Regular';
+        src: url('Fonts/BebasNeue-Regular.woff');
+      }
+    </style>
+    <!-- <script type="text/javascript" src="Source/line.js"></script>
+    <script type="text/javascript" src="Source/door.js"></script>
+    <script type="text/javascript" src="Source/thing.js"></script>
+    <script type="text/javascript" src="Source/character.js"></script>
+    <script type="text/javascript" src="Source/title_card_scene.js"></script>
+    <script type="text/javascript" src="Source/end_scene.js"></script>
+    <script type="text/javascript" src="Source/level.js"></script>
+    <script type="text/javascript" src="Source/venue_scene.js"></script>
+    <script type="text/javascript" src="Source/stage_level.js"></script>
+    <script type="text/javascript" src="Source/bathroom_level.js"></script>
+    <script type="text/javascript" src="Source/backstage_level.js"></script>
+    <script type="text/javascript" src="Source/show_scene.js"></script>
+    <script type="text/javascript" src="Source/game.js"></script> -->
+    <!-- The core Firebase JS SDK is always required and must be listed first -->
+    
+  </head>
+  <body bgcolor = #D9D9D9 onload="initialize();">
+    <!-- <audio preload="auto" id="deep_rough" >
+      <source src="Sound/deep_rough.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio preload="auto" id="adventure" >
+      <source src="Sound/adventure.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio preload="auto" id="flush" >
+      <source src="Sound/flush.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio preload="auto" id="sink" >
+      <source src="Sound/sink.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio preload="auto" id="conversation" >
+      <source src="Sound/conversation.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio preload="auto" id="interactive" >
+      <source src="Sound/interactive.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio preload="auto" id="down" >
+      <source src="Sound/down.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio preload="auto" id="up" >
+      <source src="Sound/up.mp3" type="audio/mpeg">
+    </audio>
+
+    <audio preload="auto" id="negative" >
+      <source src="Sound/negative.mp3" type="audio/mpeg">
+    </audio>
+
+     <audio preload="auto" id="positive" >
+      <source src="Sound/positive.mp3" type="audio/mpeg">
+    </audio> -->
+
+    <div id="mainDiv">
+    </div>
+<!-- 
+    <script type="text/javascript" src="Source/jquery.min.js"></script> -->
+    <script src="https://www.gstatic.com/firebasejs/8.2.5/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.5/firebase-analytics.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.2.5/firebase-database.js"></script>
+    <script type="text/javascript" src="Source/pixi.min.js"></script>
+    <script type="text/javascript" src="Source/tween.umd.min.js"></script>
+    <script type="text/javascript" src="Source/multiplayer.js"></script>
+    <script type="text/javascript" src="Source/game.js"></script>
+    <script type="text/javascript" src="Source/setup_title.js"></script>
+  </body>
+</html>
