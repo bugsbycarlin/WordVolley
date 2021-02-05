@@ -12,6 +12,7 @@ Game.prototype.backArrow = function(current, old, action=null) {
   arrow.buttonMode = true;
   arrow.on("click", function() {
     if (action != null) {
+      console.log("Doing action");
       action();
     }
     self.animateSceneSwitch(current, old)
@@ -52,7 +53,7 @@ Game.prototype.changeCharacterArrow = function(scene, player, direction, x, y) {
       self.multiplayer.update({player_2_character: new_character});
     }
   });
-  this.scenes[scene].addChild(back_arrow);
+  this.scenes[scene].addChild(arrow);
 }
 
 Game.prototype.initializeTitleScreen = function() {
@@ -80,6 +81,7 @@ Game.prototype.initializeTitleScreen = function() {
     "CREATE", 60, 6, 0xFFFFFF,
     256, 90, 0x3cb0f3,
     function() {
+      self.initializeSetupCreate();
       self.animateSceneSwitch("title", "setup_create")
     }
   );
@@ -90,6 +92,7 @@ Game.prototype.initializeTitleScreen = function() {
     "JOIN", 60, 6, 0x000000,
     256, 90, 0xf3db3c,
     function() {
+      self.initializeSetupJoin();
       self.animateSceneSwitch("title", "setup_join")
     }
   ); 
@@ -97,6 +100,8 @@ Game.prototype.initializeTitleScreen = function() {
 
 
 Game.prototype.initializeSetupCreate = function() {
+  this.clearScene(this.scenes["setup_create"]);
+
   var create_button = this.makeButton(
     this.scenes["setup_create"],
     this.width * 1/2, this.height * 5/6,
@@ -151,8 +156,6 @@ Game.prototype.initializeSetupCreate = function() {
           selection_marker.position.x = self.width * (choice_num+1)/8;
           create_button.visible = true;
         } else {
-          console.log(self.width * (choice_num+1)/8);
-          console.log(choice_num);
           self.time_limit_choice = choice_num;
           var tween = new TWEEN.Tween(selection_marker.position)
             .to({x: self.width * (choice_num+1)/8})
@@ -165,11 +168,13 @@ Game.prototype.initializeSetupCreate = function() {
     );
   }
 
-  this.backArrow("setup_create", "title")
+  this.backArrow("setup_create", "title", function() {self.resetTitle();})
 }
 
 
 Game.prototype.initializeSetupJoin = function() {
+  this.clearScene(this.scenes["setup_join"]);
+
   var your_game_code_give_it_to_me = new PIXI.Text("YOUR CODES. GIVE DEM TO ME.", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0x000000, letterSpacing: 6, align: "center"});
   your_game_code_give_it_to_me.anchor.set(0.5,0.5);
   your_game_code_give_it_to_me.position.set(this.width * 1/2, this.height * 1/5 - 60);
@@ -177,7 +182,7 @@ Game.prototype.initializeSetupJoin = function() {
 
   var self = this;
 
-  var game_code_letters = [];
+  this.game_code_letters = [];
 
   var join_button = this.makeButton(
     this.scenes["setup_join"],
@@ -187,7 +192,7 @@ Game.prototype.initializeSetupJoin = function() {
     function() {
       var potential_game_code = "";
       for (var i = 0; i < 5; i++) {
-        potential_game_code += game_code_letters[i].text.text;
+        potential_game_code += self.game_code_letters[i].text.text;
       }
       self.joinGame(potential_game_code);
     }
@@ -197,7 +202,7 @@ Game.prototype.initializeSetupJoin = function() {
   this.game_code_letter_choice = 0;
   for (var i = 0; i < 5; i++) {
     let choice_num = i;
-    game_code_letters.push(this.makeButton(
+    this.game_code_letters.push(this.makeButton(
       this.scenes["setup_join"],
       this.width * 1/2 - 200 + 100*i , this.height * 1/5 + 40,
       "", 100, 6, 0x000000,
@@ -205,36 +210,84 @@ Game.prototype.initializeSetupJoin = function() {
       function() {
         self.game_code_letter_choice = choice_num
         for (var i = 0; i < 5; i++) {
-          game_code_letters[i].backing.tint = (i == self.game_code_letter_choice ? 0xf1e594 : 0xFFFFFF);
+          self.game_code_letters[i].backing.tint = (i == self.game_code_letter_choice ? 0xf1e594 : 0xFFFFFF);
         }
-        for (var i = choice_num; i < 4; i++) {
-          game_code_letters[i].text.text = game_code_letters[i+1].text.text;
-        }
-        game_code_letters[4].text.text = "";
-        join_button.visible = false;
+        // for (var i = choice_num; i < 4; i++) {
+        //   game_code_letters[i].text.text = game_code_letters[i+1].text.text;
+        // }
+        // game_code_letters[4].text.text = "";
+        // join_button.visible = false;
       }
     ));
   }
 
   this.makeLetterPalette(this.scenes["setup_join"], this.width * 9/16, this.height * 9/16, function(letter) {
-    game_code_letters[self.game_code_letter_choice].text.text = letter;
+    self.game_code_letters[self.game_code_letter_choice].text.text = letter;
     if (self.game_code_letter_choice < 4) {
       self.game_code_letter_choice += 1;
     }
     join_button.visible = true;
     for (var i = 0; i < 5; i++) {
-      if (game_code_letters[i].text.text == "") {
+      if (self.game_code_letters[i].text.text == "") {
         join_button.visible = false;
       }
-      game_code_letters[i].backing.tint = (i == self.game_code_letter_choice ? 0xf1e594 : 0xFFFFFF);
+      self.game_code_letters[i].backing.tint = (i == self.game_code_letter_choice ? 0xf1e594 : 0xFFFFFF);
     }
   });
 
-  this.backArrow("setup_join", "title");
+  this.backArrow("setup_join", "title", function() {self.resetTitle();});
+}
+
+Game.prototype.initializeAlertBox = function() {
+  this.alertBox.position.set(this.width / 2, this.height / 2);
+  this.alertBox.visible = false;
+
+  var outline = PIXI.Sprite.from(PIXI.Texture.WHITE);
+  outline.width = this.width / 3;
+  outline.height = this.height / 3;
+  outline.anchor.set(0.5, 0.5);
+  outline.position.set(-1, -1);
+  outline.tint = 0xDDDDDD;
+  this.alertBox.addChild(outline);
+
+  for (var i = 0; i < 4; i++) {
+    var backingGrey = PIXI.Sprite.from(PIXI.Texture.WHITE);
+    backingGrey.width = this.width / 3;
+    backingGrey.height = this.height / 3;
+    backingGrey.anchor.set(0.5, 0.5);
+    backingGrey.position.set(4 - i, 4 - i);
+    backingGrey.tint = PIXI.utils.rgb2hex([0.8 - 0.1*i, 0.8 - 0.1*i, 0.8 - 0.1*i]);
+    this.alertBox.addChild(backingGrey);
+  }
+
+  var backingWhite = PIXI.Sprite.from(PIXI.Texture.WHITE);
+  backingWhite.width = this.width / 3;
+  backingWhite.height = this.height / 3;
+  backingWhite.anchor.set(0.5, 0.5);
+  backingWhite.position.set(0,0);
+  backingWhite.tint = 0xFFFFFF;
+  this.alertBox.addChild(backingWhite);
+
+  this.alertBox.alertText = new PIXI.Text("EH. OKAY.", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0x000000, letterSpacing: 6, align: "center"});
+  this.alertBox.alertText.anchor.set(0.5,0.5);
+  this.alertBox.alertText.position.set(0, this.height * -1/12 + 20);
+  this.alertBox.addChild(this.alertBox.alertText);
+
+  this.alertBox.button = this.makeButton(
+    this.alertBox,
+    0, this.height * 1/12,
+    "OK, DANG", 36, 6, 0xFFFFFF,
+    180, 60, 0x3cb0f3,
+    function() {},
+  );
 }
 
 
 Game.prototype.resetSetupLobby = function() {
+  var self = this;
+
+  this.clearScene(this.scenes["lobby"]);
+
   this.lobby = [];
 
   console.log(this.state.player_1_character);
@@ -285,6 +338,12 @@ Game.prototype.resetSetupLobby = function() {
     this.scenes["lobby"].addChild(this.lobby.info_text);
   }
 
-  this.backArrow("lobby", "title");
+  this.backArrow("lobby", "title", function() {
+    console.log("Here's the action");
+    console.log(self.game_code);
+    console.log(self.player);
+    self.multiplayer.leaveGame(self.game_code, self.player)
+    self.resetTitle();
+  });
 }
 

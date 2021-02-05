@@ -35,14 +35,15 @@ class Game {
 
     setInterval(function() {self.update()},33);
 
-    setInterval(function() {
-      console.log("Stat poll.")
-      console.log("Player: " + this.player);
-      console.log("Game code: " + this.game_code);
-      console.log("Game state: " + this.state);
-    },3000);
+    // setInterval(function() {
+    //   console.log("Stat poll.")
+    //   console.log("Player: " + self.player);
+    //   console.log("Game code: " + self.game_code);
+    //   console.log("Game state: ")
+    //   console.log(self.state);
+    // },3000);
 
-    document.addEventListener("unload", function(ev) {
+    window.addEventListener("unload", function(ev) {
       if (self.game_code != "" && self.player > 0) {
         self.multiplayer.leaveGame(self.game_code, self.player)
       }
@@ -68,12 +69,13 @@ class Game {
     pixi.stage.addChild(this.scenes["lobby"]);
     pixi.stage.addChild(this.scenes["game"]);
 
+    this.alertBox = new PIXI.Container();
+    pixi.stage.addChild(this.alertBox);
 
     this.initializeTitleScreen();
-    this.initializeSetupCreate();
-    this.initializeSetupJoin();
-
-    // this.state = this.multiplayer.getState();
+    // this.initializeSetupCreate();
+    // this.initializeSetupJoin();
+    this.initializeAlertBox();
   }
 
 
@@ -86,7 +88,7 @@ class Game {
       console.log(self.state.player_1_character);
       self.resetSetupLobby();
 
-      self.lobby.game_code.text = "GAME CODE " + self.multiplayer.game_code;
+      self.lobby.game_code.text = "GAME CODE " + self.game_code;
 
       self.multiplayer.setWatches();
 
@@ -107,7 +109,11 @@ class Game {
       self.multiplayer.setWatches();
 
       self.animateSceneSwitch("setup_join", "lobby");
-    }, function() {});
+    }, function() {
+      self.showAlert("Sorry, can't find\nthat game :-(", function() {
+
+      })
+    });
   }
 
 
@@ -121,6 +127,7 @@ class Game {
         this.scenes[i].visible = true;
       } else {
         this.scenes[i].visible = false;
+        this.clearScene(this.scenes[i]);
       }
     }
     var tween_1 = new TWEEN.Tween(this.scenes[old_scene].position)
@@ -134,6 +141,23 @@ class Game {
       .easing(TWEEN.Easing.Cubic.InOut)
       .start();
     this.current_scene = new_scene;
+  }
+
+
+  showAlert(text, action) {
+    var self = this;
+    this.alertBox.alertText.text = text;
+    this.alertBox.button.on("click", function() {
+      action();
+      self.alertBox.visible = false
+    });
+    this.alertBox.visible = true;
+    new TWEEN.Tween(this.alertBox)
+      .to({rotation: Math.PI / 60.0})
+      .duration(70)
+      .yoyo(true)
+      .repeat(3)
+      .start()
   }
 
 
@@ -213,7 +237,20 @@ class Game {
     this.player = 0;
     this.state  = {};
     this.game_code = "";
-    this.start_time = Date.now(); 
+    this.start_time = Date.now();
+    this.game_code_letter_choice = 0;
+    // if (this.game_code_letters != null) {
+    //   for (var i = 0; i < 5; i++) {
+    //     this.game_code_letters[i].text.text = "";
+    //     this.game_code_letters[i].backing.tint = (i == this.game_code_letter_choice ? 0xf1e594 : 0xFFFFFF);
+    //   }
+
+    // }
+  }
+
+
+  clearScene(scene) {
+    while(scene.children[0]) { scene.removeChild(scene.children[0]); }
   }
 
 

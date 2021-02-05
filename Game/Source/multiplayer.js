@@ -50,9 +50,10 @@ class Multiplayer {
       if (error) {
         console.log("Failed to create game " + game_code);
         console.log(error);
+        self.game.showAlert("Sorry! I could't\nmake a game.\nPlease try later.", function() {});
       } else {
         console.log("Created game " + game_code)
-        self.game_code = game_code;
+        self.game.game_code = game_code;
         callback();
       }
     });
@@ -63,12 +64,13 @@ class Multiplayer {
     var self = this;
     this.database.ref("/games/" + game_code).once("value").then((result) => {
       if (result.exists()) {
-        self.game_code = game_code;
+        self.game.game_code = game_code;
         this.database.ref("games/" + game_code).update({
           player_2_present: true,
         }, (error) => {
           if (error) {
             console.log("Could not join game " + game_code);
+            no_callback();
           } else {
             console.log("Managed to join game " + game_code);
             this.database.ref("/games/" + game_code).once("value").then((result) => {
@@ -92,7 +94,7 @@ class Multiplayer {
     var self = this;
     var game = this.game;
     
-    var ref_player_2_present = this.database.ref("games/" + this.game_code + "/player_2_present");
+    var ref_player_2_present = this.database.ref("games/" + game.game_code + "/player_2_present");
     ref_player_2_present.on("value", (snapshot) => {
       if (game.state.player_2_present == false && snapshot.val() == true) {
         // Player 2 is joining the game
@@ -108,29 +110,35 @@ class Multiplayer {
         // Player 2 is leaving the game
         game.state.player_2_present = snapshot.val();
         if (game.player == 1) {
-          // TO DO showAlert "Player 2 has left the game!"
+          game.showAlert("Player 2 has\nleft the game!", function() {
+            game.resetTitle();
+            game.animateSceneSwitch(game.current_scene, "title");
+          })
         }
       }
     });
 
-    var ref_player_1_present = this.database.ref("games/" + this.game_code + "/player_1_present");
+    var ref_player_1_present = this.database.ref("games/" + game.game_code + "/player_1_present");
     ref_player_1_present.on("value", (snapshot) => {
       if (game.state.player_1_present == true && snapshot.val() == false) {
         // Player 1 is leaving the game
         game.state.player_1_present = snapshot.val();
         if (game.player == 2) {
-          // TO DO showAlert "Player 1 has left the game!"
+          game.showAlert("Player 1 has\nleft the game!", function() {
+            game.resetTitle();
+            game.animateSceneSwitch(game.current_scene, "title");
+          })
         }
       }
     });
 
-    var ref_player_1_character = this.database.ref("games/" + this.game_code + "/player_1_character");
+    var ref_player_1_character = this.database.ref("games/" + game.game_code + "/player_1_character");
     ref_player_1_character.on("value", (snapshot) => {
       game.state.player_1_character = snapshot.val();
       game.lobby.player_1_character.text = snapshot.val();
     });
 
-    var ref_player_2_character = this.database.ref("games/" + this.game_code + "/player_2_character");
+    var ref_player_2_character = this.database.ref("games/" + game.game_code + "/player_2_character");
     ref_player_2_character.on("value", (snapshot) => {
       game.state.player_2_character = snapshot.val();
       game.lobby.player_2_character.text = snapshot.val();
@@ -141,9 +149,14 @@ class Multiplayer {
 
 
   leaveGame(code, player) {
+    console.log("In leave game");
+    console.log(code);
+    console.log(player);
     if (player == 1) {
+      console.log("Player 1 leaving the game");
       this.database.ref("games/" + code).update({player_1_present: false});
     } else if (player == 2) {
+      console.log("Player 2 leaving the game");
       this.database.ref("games/" + code).update({player_2_present: false});
     } 
   }
@@ -162,6 +175,6 @@ class Multiplayer {
   }
 
   update(sheet) {
-    this.database.ref("games/" + this.game_code).update(sheet);
+    this.database.ref("games/" + this.game.game_code).update(sheet);
   }
 }
