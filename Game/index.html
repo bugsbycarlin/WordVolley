@@ -2,7 +2,7 @@
 <html>
   <head>
     <title>Word Volley</title>
-    <link rel="preload" href="Fonts/BebasNeue-Regular.woff" as="font" />
+    <!-- <link rel="preload" href="Fonts/BebasNeue-Regular.woff" as="font" type="font/woff" crossorigin/> -->
     <style type="text/css">
       canvas 
       { 
@@ -27,10 +27,15 @@
         margin-top:-360px;
       }
 
-      @font-face {
-        font-family: 'BebasNeue-Regular';
-        src: url('Fonts/BebasNeue-Regular.woff');
-      }
+/*      @font-face {
+        font-family: 'BebasNeue';
+        src:
+             url('Fonts/BebasNeue-Regular.woff')  format('woff'),
+             url('Fonts/BebasNeue-Regular.woff2') format("woff2"),
+             url('Fonts/BebasNeue-Regular.ttf')  format('truetype');
+      }*/
+
+
     </style>
     <!-- <script type="text/javascript" src="Source/line.js"></script>
     <script type="text/javascript" src="Source/door.js"></script>
@@ -93,6 +98,14 @@
     </div>
 <!-- 
     <script type="text/javascript" src="Source/jquery.min.js"></script> -->
+    <script src="https://ajax.googleapis.com/ajax/libs/webfont/1.6.26/webfont.js"></script>
+    <script>
+      WebFont.load({
+        google: {
+          families: ['Bebas Neue']
+        }
+      });
+    </script>
     <script src="https://www.gstatic.com/firebasejs/8.2.5/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.5/firebase-analytics.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.2.5/firebase-database.js"></script>

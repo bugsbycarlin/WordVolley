@@ -11,7 +11,7 @@ class Game {
     // Browser and iphone are 1280x720, and ipad is 1280x960.
     this.width = 1280;
     this.height = 720;
-    if (true) {
+    if (false) {
       this.height = 960;
       document.getElementById("mainDiv").style.height = 960;
       document.getElementById("mainDiv").style.marginTop = -480;
@@ -23,28 +23,30 @@ class Game {
     pixi.renderer.backgroundColor = 0xFFFFFF;
     pixi.renderer.resize(this.width,this.height);
 
-
     this.multiplayer = new Multiplayer(this);
-    // this.multiplayer.game_name = "ancha";
 
     this.initialize();
-    
+    this.resetTitle(); 
 
     // document.addEventListener("click", function(ev) {self.handleMouse(ev)}, false);
-
+    // this.volley = "k";
 
     this.current_scene = "title";
 
-    this.volley = "k";
-
-
-    this.multiplayer.updateVolley("cats");
-    
-    this.reset();
-
-    this.start_time = Date.now();
-
     setInterval(function() {self.update()},33);
+
+    setInterval(function() {
+      console.log("Stat poll.")
+      console.log("Player: " + this.player);
+      console.log("Game code: " + this.game_code);
+      console.log("Game state: " + this.state);
+    },3000);
+
+    document.addEventListener("unload", function(ev) {
+      if (self.game_code != "" && self.player > 0) {
+        self.multiplayer.leaveGame(self.game_code, self.player)
+      }
+    })
   }
 
 
@@ -70,49 +72,42 @@ class Game {
     this.initializeTitleScreen();
     this.initializeSetupCreate();
     this.initializeSetupJoin();
-    this.initializeSetupLobby();
 
-
-    this.state = this.multiplayer.getState();
+    // this.state = this.multiplayer.getState();
   }
 
 
   createGame() {
-    this.animateSceneSwitch("setup_create", "lobby");
+    this.player = 1;
 
     var self = this;
 
     this.multiplayer.createNewGame(function() {
-      self.lobby.game_waiting.visible = false;
-      self.lobby.game_code.text = "GAME CODE " + self.multiplayer.game_name.toUpperCase();
-      self.lobby.game_code.visible = true;
-      self.lobby.player_waiting.visible = true;
+      console.log(self.state.player_1_character);
+      self.resetSetupLobby();
+
+      self.lobby.game_code.text = "GAME CODE " + self.multiplayer.game_code;
+
+      self.multiplayer.setWatches();
+
+      self.animateSceneSwitch("setup_create", "lobby");
     })
+
   }
 
 
-  makeButton(parent, x, y, text, text_size, text_spacing, text_color, backing_width, backing_height, backing_color, action) {
-    var button = new PIXI.Container();
-    parent.addChild(button);
-    button.position.set(x, y);
-    // var button_image = new PIXI.Sprite(PIXI.Texture.from("Art/" + backing_color + "_button_backing.png"));
-    // button_image.anchor.set(0.5,0.5);
-    button.backing = PIXI.Sprite.from(PIXI.Texture.WHITE);
-    button.backing.width = backing_width;
-    button.backing.height = backing_height;
-    button.backing.anchor.set(0.5, 0.5);
-    button.backing.tint = backing_color;
-    button.text = new PIXI.Text(text, {fontFamily: "BebasNeue-Regular", fontSize: text_size, fill: text_color, letterSpacing: text_spacing, align: "center"});
-    button.text.anchor.set(0.5,0.45);
-    button.addChild(button.backing);
-    button.addChild(button.text);
+  joinGame(game_code) {
+    this.player = 2;
 
-    button.interactive = true;
-    button.buttonMode = true;
-    button.hitArea = button.backing.hitArea;
-    button.on("click", action);
+    var self = this;
 
-    return button;
+    this.multiplayer.joinGame(game_code, function() {
+      self.resetSetupLobby();
+
+      self.multiplayer.setWatches();
+
+      self.animateSceneSwitch("setup_join", "lobby");
+    }, function() {});
   }
 
 
@@ -142,7 +137,39 @@ class Game {
   }
 
 
+  makeButton(parent, x, y, text, text_size, text_spacing, text_color, backing_width, backing_height, backing_color, action) {
+    var button = new PIXI.Container();
+    parent.addChild(button);
+    button.position.set(x, y);
+    // var button_image = new PIXI.Sprite(PIXI.Texture.from("Art/" + backing_color + "_button_backing.png"));
+    // button_image.anchor.set(0.5,0.5);
+    button.backing = PIXI.Sprite.from(PIXI.Texture.WHITE);
+    button.backing.width = backing_width;
+    button.backing.height = backing_height;
+    button.backing.anchor.set(0.5, 0.5);
+    button.backing.tint = backing_color;
+    button.text = new PIXI.Text(text, {fontFamily: "Bebas Neue", fontSize: text_size, fill: text_color, letterSpacing: text_spacing, align: "center"});
+    button.text.anchor.set(0.5,0.45);
+    button.addChild(button.backing);
+    button.addChild(button.text);
+
+    button.interactive = true;
+    button.buttonMode = true;
+    button.hitArea = button.backing.hitArea;
+    button.on("click", action);
+
+    return button;
+  }
+
+
   makeLetterPalette(parent, x, y, action) {
+    var mat = PIXI.Sprite.from(PIXI.Texture.WHITE);
+    mat.width = 13 * 80;
+    mat.height = 160;
+    mat.anchor.set(0.5, 0.5);
+    mat.position.set(x - 80,y);
+    mat.tint = 0xCCCCCC;
+    parent.addChild(mat)
     var letters = [];
     var size = 80;
     letters[0] = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"];
@@ -151,13 +178,28 @@ class Game {
       for (var i = 0; i < 13; i++) {
         let letter = letters[h][i];
         this.makeButton(
-          this.scenes["setup_join"],
+          parent,
           x - 7*size + i*size, y + (h == 0 ? -size/2 : size/2),
           letter, size, 6, 0x000000,
-          size - 1, size, 0xFFFFFF,
+          size, size, ((i+h) % 2 == 0 ? 0xF0F0F0 : 0xFFFFFF),
           //((i+h) % 2 == 0 ? 0xf1e594 : 0xFFFFFF)
           function() {
             if (action != null) {
+              new TWEEN.Tween(this)
+                .to({rotation: Math.PI / 20.0})
+                .duration(70)
+                // .easing(TWEEN.Easing.Linear.In)
+                .yoyo(true)
+                .repeat(1)
+                
+                .chain(new TWEEN.Tween(this)
+                  .to({rotation: Math.PI / -20.0})
+                  .duration(70)
+                  // .easing(TWEEN.Easing.Linear.In)
+                  .yoyo(true)
+                  .repeat(1)
+                  )
+                .start()
               action(letter);
             }
           }
@@ -167,21 +209,19 @@ class Game {
   }
 
 
-  reset() {
-
+  resetTitle() {
+    this.player = 0;
+    this.state  = {};
+    this.game_code = "";
+    this.start_time = Date.now(); 
   }
 
 
   update() {
 
-    if (this.current_scene == "lobby") {
-      var repeats = Math.floor(4/1000.0 * (Date.now() - this.start_time)) % 3;
-      if (this.lobby.game_waiting.visible == true) {
-        this.lobby.game_waiting.text = "Waiting for game name" + ".".repeat(repeats + 1);
-      }
-      if (this.lobby.player_waiting.visible == true) {
-        this.lobby.player_waiting.text = "Waiting for player 2" + ".".repeat(repeats + 1);
-      }
+    var repeats = Math.floor(4/1000.0 * (Date.now() - this.start_time)) % 3;
+    if (this.current_scene == "lobby" && this.player == 1 && this.state.player_2_present == false) {
+      this.lobby.info_text.text = "WAITING FOR PLAYER 2" + ".".repeat(repeats + 1);
     }
 
     this.render();
