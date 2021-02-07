@@ -28,18 +28,43 @@ class Multiplayer {
   }
 
 
-  createNewGame(callback) {
+  createNewGame(callback, tries_left = 0) {
     var self = this;
     var game_code = this.generateGameCode();
+
+    var time_limits = {
+      0: 5,
+      1: 10,
+      2: 20,
+      3: 30,
+      4: 60,
+      5: 300,
+      6: -1
+    };
+    var word_sizes = {
+      0: 4,
+      1: 5,
+      2: 6,
+      3: 7,
+      4: -1
+    };
+
+    console.log(this.game.time_limit_choice);
+    console.log(time_limits[this.game.time_limit_choice]);
 
     game.state = {
       player_1_present: true,
       player_2_present: false, 
       player_1_character: "A",
-      player_2_character: "A",
+      player_2_character: "B",
+      player_1_name: "ALFIE",
+      player_2_name: "BERT",
       player_1_score: 0,
       player_2_score: 0,
-      time_limit: this.game.time_limit_choice,
+      player_1_ready: false,
+      player_2_ready: false,
+      time_limit: time_limits[this.game.time_limit_choice],
+      word_size: word_sizes[this.game.word_size_choice],
       origin: "",
       target: "",
       volley: "",
@@ -48,9 +73,13 @@ class Multiplayer {
 
     this.database.ref("/games/" + game_code).set(game.state, (error) => {
       if (error) {
-        console.log("Failed to create game " + game_code);
+        console.log("Failed to create game " + game_code + " on try number " + tries_left);
         console.log(error);
-        self.game.showAlert("Sorry! I could't\nmake a game.\nPlease try later.", function() {});
+        if (tries_left > 0) {
+          self.createNewGame(callback, tries_left - 1)
+        } else {
+          self.game.showAlert("Sorry! I could't\nmake a game.\nPlease try later.", function() {});
+        }
       } else {
         console.log("Created game " + game_code)
         self.game.game_code = game_code;
@@ -105,6 +134,7 @@ class Multiplayer {
             game.lobby.info_text.position.set(game.width * 1/2, game.height * 1/2);
             game.lobby.info_text.text = "PLAYER 2 HAS JOINED. GET READY!";
             game.lobby.player_2_character.visible = true;
+            game.lobby.player_2_name.visible = true;
         }
       } else if (game.state.player_2_present == true && snapshot.val() == false) {
         // Player 2 is leaving the game
@@ -144,6 +174,57 @@ class Multiplayer {
       game.lobby.player_2_character.text = snapshot.val();
     });
 
+    var ref_player_1_name = this.database.ref("games/" + game.game_code + "/player_1_name");
+    ref_player_1_name.on("value", (snapshot) => {
+      game.state.player_1_name = snapshot.val();
+      game.lobby.player_1_name.text = snapshot.val();
+    });
+
+    var ref_player_2_name = this.database.ref("games/" + game.game_code + "/player_2_name");
+    ref_player_2_name.on("value", (snapshot) => {
+      game.state.player_2_name = snapshot.val();
+      game.lobby.player_2_name.text = snapshot.val();
+    });
+
+    var ref_player_1_ready = this.database.ref("games/" + game.game_code + "/player_1_ready");
+    ref_player_1_ready.on("value", (snapshot) => {
+      game.state.player_1_ready = snapshot.val();
+      if (game.state.player_1_ready && game.state.player_2_ready) {
+        game.startVolleying();
+      }
+    });
+
+    var ref_player_2_ready = this.database.ref("games/" + game.game_code + "/player_2_ready");
+    ref_player_2_ready.on("value", (snapshot) => {
+      game.state.player_2_ready = snapshot.val();
+      if (game.state.player_1_ready && game.state.player_2_ready) {
+        game.startVolleying();
+      }
+    });
+
+    var ref_origin = this.database.ref("games/" + game.game_code + "/origin");
+    ref_origin.on("value", (snapshot) => {
+      game.state.origin = snapshot.val();
+      if (game.volley != null) game.volley.statement.text = game.state.origin + "        " + game.state.target;
+    });
+
+    var ref_target = this.database.ref("games/" + game.game_code + "/target");
+    ref_target.on("value", (snapshot) => {
+      game.state.target = snapshot.val();
+      if (game.volley != null) game.volley.statement.text = game.state.origin + "        " + game.state.target;
+    });
+
+    var ref_volley = this.database.ref("games/" + game.game_code + "/volley");
+    ref_volley.on("value", (snapshot) => {
+      // TO DO: more stuff happens here. like, critical game stuff.
+      game.state.volley = snapshot.val();
+    });
+
+    var ref_turn = this.database.ref("games/" + game.game_code + "/turn");
+    ref_turn.on("value", (snapshot) => {
+      // TO DO: more stuff happens here. like, critical game stuff.
+      game.state.turn = snapshot.val();
+    });
 
   }
 

@@ -176,3 +176,77 @@ Edit permissions with time limit, capital letters, and some entry validations:
     }
   }
 }
+
+
+now with names back in:
+
+
+
+
+{
+  "rules": {
+    ".read": true,
+    ".write": false,
+   "games": {
+      "$game_name": {
+        ".validate": "$game_name.matches(/^[A-Z]{5}$/) && newData.hasChildren(['player_1_present', 'player_2_present', 'player_1_ready', 'player_2_ready', 'player_1_character', 'player_2_character', 'player_1_name', 'player_2_name', 'player_1_score', 'player_2_score', 'time_limit', 'origin', 'target', 'volley', 'turn'])",
+        ".write": "!data.exists()",
+        "player_1_present": {
+          ".write": true,
+          ".validate": "newData.val() == true || newData.val() == false",
+        },
+        "player_2_present": {
+          ".write": true,
+          ".validate": "newData.val() == true || newData.val() == false",
+        },
+        "player_1_ready": {
+          ".write": true,
+          ".validate": "newData.val() == true || newData.val() == false",
+        },
+        "player_2_ready": {
+          ".write": true,
+          ".validate": "newData.val() == true || newData.val() == false",
+        },
+        "player_1_character": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{1}$/)",
+        },
+        "player_2_character": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{1}$/)",
+        },
+        "player_1_name": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{1,8}$/)",
+        },
+        "player_2_name": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{1,8}$/)",
+        },
+        "player_1_score": {
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0.0 && newData.val() >= 0",
+        },
+        "player_2_score": {
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0.0 && newData.val() >= 0",
+        },
+        "time_limit": {
+          ".write": true,
+        },
+        "origin": {
+          ".write": true,
+        },
+        "target": {
+          ".write": true,
+        },
+        "volley": {
+          ".write": true,
+        },
+        "turn": {
+          ".write": true,
+        },
+      }
+    }
+  }
+}

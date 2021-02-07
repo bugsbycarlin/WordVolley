@@ -20,7 +20,34 @@ Game.prototype.backArrow = function(current, old, action=null) {
   this.scenes[current].addChild(arrow);
 }
 
-
+var character_names = [
+  "ALFIE",
+  "BERT",
+  "CALLIE",
+  "DENZEL",
+  "EMMA",
+  "FATIMA",
+  "GRETA",
+  "HAKEEM",
+  "INEZ",
+  "JIN",
+  "KRISHNA",
+  "LIAN",
+  "MARCUS",
+  "NAOMI",
+  "OMAR",
+  "PABLO",
+  "QUARREN",
+  "RIYA",
+  "SOPHIE",
+  "TANIEL",
+  "UBA",
+  "VIJAY",
+  "WINTER",
+  "XAVIER",
+  "YAIR",
+  "ZHANG",
+];
 Game.prototype.changeCharacterArrow = function(scene, player, direction, x, y) {
   var self = this;
   var arrow = new PIXI.Sprite(PIXI.Texture.from("Art/left_arrow.png"));
@@ -41,23 +68,25 @@ Game.prototype.changeCharacterArrow = function(scene, player, direction, x, y) {
       console.log(old_character);
       var position = alphabetArray.indexOf(old_character);
       var new_character = alphabetArray[(position + alphabetArray.length + 1 * direction) % 26];
+      var new_name = character_names[(position + alphabetArray.length + 1 * direction) % 26];
       self.state.player_1_character = new_character;
       self.lobby.player_1_character.text = new_character;
-      self.multiplayer.update({player_1_character: new_character});
+      self.multiplayer.update({player_1_character: new_character, player_1_name: new_name});
     } else if (player == 2) {
       var old_character = self.state.player_2_character;
       var position = alphabetArray.indexOf(old_character);
       var new_character = alphabetArray[(position + alphabetArray.length + 1 * direction) % 26];
+      var new_name = character_names[(position + alphabetArray.length + 1 * direction) % 26];
       self.state.player_2_character = new_character;
       self.lobby.player_2_character.text = new_character;
-      self.multiplayer.update({player_2_character: new_character});
+      self.multiplayer.update({player_2_character: new_character, player_2_name: new_name});
     }
   });
   this.scenes[scene].addChild(arrow);
 }
 
 Game.prototype.initializeTitleScreen = function() {
-  // create the title screen layout
+  // Make the title screen layout
   var title_left = new PIXI.Sprite(PIXI.Texture.from("Art/title_left.png"));
   title_left.position.set(this.width * 1/8, this.height * 1/2);
   title_left.anchor.set(0.5, 0.5);
@@ -95,7 +124,7 @@ Game.prototype.initializeTitleScreen = function() {
       self.initializeSetupJoin();
       self.animateSceneSwitch("title", "setup_join")
     }
-  ); 
+  );
 }
 
 
@@ -119,22 +148,66 @@ Game.prototype.initializeSetupCreate = function() {
     "", 60, 6, 0x000000,
     128, 90, 0xFFFFFF,
     function() {
-      self.animateSceneSwitch("title", "setup_join")
+      self.animateSceneSwitch("title", "setup_join");
     }
   );
 
-  var selection_marker = PIXI.Sprite.from(PIXI.Texture.WHITE);
-  selection_marker.width = 100;
-  selection_marker.height = 3;
-  selection_marker.anchor.set(0.5, 0.5);
-  selection_marker.tint = 0x3cb0f3;
-  selection_marker.position.set(this.width * 1/2,this.height * 1/2 + 40);
-  selection_marker.visible = false;
-  this.scenes["setup_create"].addChild(selection_marker);
 
-  var choose_a_time_limit_text = new PIXI.Text("CHOOSE A TIME LIMIT", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0x000000, letterSpacing: 6, align: "center"});
+  var word_selection_marker = PIXI.Sprite.from(PIXI.Texture.WHITE);
+  word_selection_marker.width = 100;
+  word_selection_marker.height = 3;
+  word_selection_marker.anchor.set(0.5, 0.5);
+  word_selection_marker.tint = 0x3cb0f3;
+  word_selection_marker.position.set(this.width * 1/2,this.height * 8/32 + 32);
+  word_selection_marker.visible = false;
+  this.scenes["setup_create"].addChild(word_selection_marker);
+
+  var choose_a_word_size_text = new PIXI.Text("WORD SIZE", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0x000000, letterSpacing: 6, align: "center"});
+  choose_a_word_size_text.anchor.set(0.5,0.5);
+  choose_a_word_size_text.position.set(this.width * 1/2, this.height * 6/32);
+  this.scenes["setup_create"].addChild(choose_a_word_size_text);
+
+  var self = this;
+
+  this.word_size_choices = ["FOUR", "FIVE", "SIX", "SEVEN", "ANY"]
+  this.word_size_choice = -1;
+  for (var i = 0; i < this.word_size_choices.length; i++) {
+    let choice_num = i;
+    this.makeButton(
+      this.scenes["setup_create"],
+      this.width * (i+1)/6 , this.height * 8/32,
+      this.word_size_choices[i], 36, 6, 0x3cb0f3,
+      20 * (1 + this.word_size_choices[i].length), 60, 0xFFFFFF,
+      function() {
+        if (self.word_size_choice == -1) {
+          self.word_size_choice = choice_num;
+          word_selection_marker.visible = true;
+          word_selection_marker.position.x = self.width * (choice_num+1)/6;
+          if (self.time_limit_choice != -1) create_button.visible = true;
+        } else {
+          self.word_size_choice = choice_num;
+          var tween = new TWEEN.Tween(word_selection_marker.position)
+            .to({x: self.width * (choice_num+1)/6})
+            .duration(250)
+            .easing(TWEEN.Easing.Cubic.Out)
+            .start();
+        }
+      }
+    );
+  }
+
+  var time_selection_marker = PIXI.Sprite.from(PIXI.Texture.WHITE);
+  time_selection_marker.width = 100;
+  time_selection_marker.height = 3;
+  time_selection_marker.anchor.set(0.5, 0.5);
+  time_selection_marker.tint = 0x3cb0f3;
+  time_selection_marker.position.set(this.width * 1/2,this.height * 17/32 + 32);
+  time_selection_marker.visible = false;
+  this.scenes["setup_create"].addChild(time_selection_marker);
+
+  var choose_a_time_limit_text = new PIXI.Text("TIME LIMIT", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0x000000, letterSpacing: 6, align: "center"});
   choose_a_time_limit_text.anchor.set(0.5,0.5);
-  choose_a_time_limit_text.position.set(this.width * 1/2, this.height * 13/32);
+  choose_a_time_limit_text.position.set(this.width * 1/2, this.height * 15/32);
   this.scenes["setup_create"].addChild(choose_a_time_limit_text);
 
   var self = this;
@@ -143,27 +216,25 @@ Game.prototype.initializeSetupCreate = function() {
   this.time_limit_choice = -1;
   for (var i = 0; i < this.time_limit_choices.length; i++) {
     let choice_num = i;
-    console.log(choice_num);
     this.makeButton(
       this.scenes["setup_create"],
-      this.width * (i+1)/8 , this.height * 1/2,
+      this.width * (i+1)/8 , this.height * 17/32,
       this.time_limit_choices[i], 36, 6, 0x3cb0f3,
       20 * (1 + this.time_limit_choices[i].length), 60, 0xFFFFFF,
       function() {
         if (self.time_limit_choice == -1) {
           self.time_limit_choice = choice_num;
-          selection_marker.visible = true;
-          selection_marker.position.x = self.width * (choice_num+1)/8;
-          create_button.visible = true;
+          time_selection_marker.visible = true;
+          time_selection_marker.position.x = self.width * (choice_num+1)/8;
+          if (self.word_size_choice != -1) create_button.visible = true;
         } else {
           self.time_limit_choice = choice_num;
-          var tween = new TWEEN.Tween(selection_marker.position)
+          var tween = new TWEEN.Tween(time_selection_marker.position)
             .to({x: self.width * (choice_num+1)/8})
             .duration(250)
             .easing(TWEEN.Easing.Cubic.Out)
             .start();
         }
-        //self.animateSceneSwitch("title", "setup_create")
       }
     );
   }
@@ -296,9 +367,14 @@ Game.prototype.resetSetupLobby = function() {
   this.lobby.player_1_character.position.set(this.width * 1/8, this.height * 1/2);
   this.scenes["lobby"].addChild(this.lobby.player_1_character);
 
+  this.lobby.player_1_name = new PIXI.Text(this.state.player_1_name, {fontFamily: "Bebas Neue", fontSize: 36, fill: 0x3cb0f3, letterSpacing: 6, align: "center"});
+  this.lobby.player_1_name.anchor.set(0.5,0.5);
+  this.lobby.player_1_name.position.set(this.width * 1/8, this.height * 1/2 + 80);
+  this.scenes["lobby"].addChild(this.lobby.player_1_name);
+
   if (this.player == 1) {
     this.changeCharacterArrow("lobby", 1, 1, this.width * 1/8, this.height * 1/2 - 100);
-    this.changeCharacterArrow("lobby", 1, -1, this.width * 1/8, this.height * 1/2 + 80);
+    this.changeCharacterArrow("lobby", 1, -1, this.width * 1/8, this.height * 1/2 + 120);
   }
 
   this.lobby.player_2_character = new PIXI.Text(this.state.player_2_character, {fontFamily: "Bebas Neue", fontSize: 144, fill: 0xf3db3c, letterSpacing: 6, align: "center"});
@@ -306,9 +382,14 @@ Game.prototype.resetSetupLobby = function() {
   this.lobby.player_2_character.position.set(this.width * 7/8, this.height * 1/2);
   this.scenes["lobby"].addChild(this.lobby.player_2_character);
 
+  this.lobby.player_2_name = new PIXI.Text(this.state.player_2_name, {fontFamily: "Bebas Neue", fontSize: 36, fill: 0xf3db3c, letterSpacing: 6, align: "center"});
+  this.lobby.player_2_name.anchor.set(0.5,0.5);
+  this.lobby.player_2_name.position.set(this.width * 7/8, this.height * 1/2 + 80);
+  this.scenes["lobby"].addChild(this.lobby.player_2_name);
+
   if (this.player == 2) {
     this.changeCharacterArrow("lobby", 2, 1, this.width * 7/8, this.height * 1/2 - 100);
-    this.changeCharacterArrow("lobby", 2, -1, this.width * 7/8, this.height * 1/2 + 80);
+    this.changeCharacterArrow("lobby", 2, -1, this.width * 7/8, this.height * 1/2 + 120);
   }
   
   if (this.player == 1) {
@@ -330,6 +411,7 @@ Game.prototype.resetSetupLobby = function() {
     // this.lobby.player_2_joined.visible = false;
 
     this.lobby.player_2_character.visible = false;
+    this.lobby.player_2_name.visible = false;
 
   } else if (this.player == 2) {
     this.lobby.info_text = new PIXI.Text("GET IN THE CHOPPER!", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0x000000, letterSpacing: 6, align: "center"});
@@ -345,5 +427,17 @@ Game.prototype.resetSetupLobby = function() {
     self.multiplayer.leaveGame(self.game_code, self.player)
     self.resetTitle();
   });
+
+  this.makeButton(
+    this.scenes["lobby"],
+    this.width * 1/2, this.height * 5/6,
+    "READY", 60, 6, 0xFFFFFF,
+    256, 90, 0x3cb0f3,
+    function() {
+      if (self.player == 1) self.multiplayer.update({player_1_ready: true});
+      if (self.player == 2) self.multiplayer.update({player_2_ready: true});
+      this.disable();
+    }
+  );
 }
 

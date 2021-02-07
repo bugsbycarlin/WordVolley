@@ -29,7 +29,6 @@ class Game {
     this.resetTitle(); 
 
     // document.addEventListener("click", function(ev) {self.handleMouse(ev)}, false);
-    // this.volley = "k";
 
     this.current_scene = "title";
 
@@ -48,6 +47,32 @@ class Game {
         self.multiplayer.leaveGame(self.game_code, self.player)
       }
     })
+
+
+
+    //this.scenes["title"].addChild(this.test_ball);
+    // this.test_ball.position.set(this.width * 1/8, this.height * 1/3);
+    // this.test_ball.addWord("hords");
+    // this.test_ball.addWord("horns");
+    // this.test_ball.addWord("morns");
+    // this.test_ball.addWord("moons");
+
+
+    // var round = function() {
+    //   console.log("firing");
+    //   self.test_ball.vy = -10;
+    //   self.test_ball.vx = 48;
+
+    //   setTimeout(function(){
+    //     self.test_ball.vy = -10;
+    //     self.test_ball.vx = -48;
+    //   },3000);
+    // }
+    // setInterval(round,6000);
+    // round();
+
+
+
   }
 
 
@@ -61,13 +86,20 @@ class Game {
     this.scenes["setup_join"].position.x = this.width;
     this.scenes["lobby"] = new PIXI.Container();
     this.scenes["lobby"].position.x = this.width;
-    this.scenes["game"] = new PIXI.Container();
-    this.scenes["game"].position.x = 2 * this.width;
+    this.scenes["volley"] = new PIXI.Container();
+    this.scenes["volley"].position.x = 2 * this.width;
     pixi.stage.addChild(this.scenes["title"]);
     pixi.stage.addChild(this.scenes["setup_create"]);
     pixi.stage.addChild(this.scenes["setup_join"]);
     pixi.stage.addChild(this.scenes["lobby"]);
-    pixi.stage.addChild(this.scenes["game"]);
+    pixi.stage.addChild(this.scenes["volley"]);
+
+
+    this.scenes["title"].position.x = this.width;
+    this.scenes["test"] = new PIXI.Container();
+    pixi.stage.addChild(this.scenes["test"]);
+    this.initializeTestScreen();
+
 
     this.alertBox = new PIXI.Container();
     pixi.stage.addChild(this.alertBox);
@@ -93,7 +125,7 @@ class Game {
       self.multiplayer.setWatches();
 
       self.animateSceneSwitch("setup_create", "lobby");
-    })
+    }, 2)
 
   }
 
@@ -114,6 +146,49 @@ class Game {
 
       })
     });
+  }
+
+
+  resetVolley() {
+    // game.state = {
+    //   player_1_present: true,
+    //   player_2_present: false, 
+    //   player_1_character: "A",
+    //   player_2_character: "B",
+    //   player_1_name: "ALFIE",
+    //   player_2_name: "BERT",
+    //   player_1_score: 0,
+    //   player_2_score: 0,
+    //   player_1_ready: false,
+    //   player_2_ready: false,
+    //   time_limit: time_limits[this.game.time_limit_choice],
+    //   word_size: word_sizes[this.game.word_size_choice],
+    //   origin: "",
+    //   target: "",
+    //   volley: "",
+    //   turn: ""
+    // };
+    this.state.origin = "STEVE";
+    this.state.target = "BRIAN";
+    this.state.volley = "";
+    this.state.turn = 1 + Math.floor(Math.random() * 2);
+    this.multiplayer.update({
+      origin: this.state.origin,
+      target: this.state.target,
+      volley: this.state.volley,
+      turn: this.state.turn,
+    });
+  }
+
+
+  startVolleying() {
+    if (this.player == 1) {
+      // some extra work to do to start the game
+      this.resetVolley();
+    }
+
+    this.initializeVolleyScreen();
+    this.animateSceneSwitch("lobby", "volley");
   }
 
 
@@ -174,13 +249,30 @@ class Game {
     button.backing.tint = backing_color;
     button.text = new PIXI.Text(text, {fontFamily: "Bebas Neue", fontSize: text_size, fill: text_color, letterSpacing: text_spacing, align: "center"});
     button.text.anchor.set(0.5,0.45);
+    button.fronting = PIXI.Sprite.from(PIXI.Texture.WHITE);
+    button.fronting.width = backing_width;
+    button.fronting.height = backing_height;
+    button.fronting.anchor.set(0.5, 0.5);
+    button.fronting.alpha = 0.7;
     button.addChild(button.backing);
     button.addChild(button.text);
+    button.addChild(button.fronting)
+    button.fronting.visible = false;
 
     button.interactive = true;
     button.buttonMode = true;
     button.hitArea = button.backing.hitArea;
     button.on("click", action);
+
+    button.disable = function() {
+      this.fronting.visible = true;
+      this.interactive = false;
+    }
+
+    button.enable = function() {
+      this.fronting.visible = false;
+      this.interactive = true;
+    }
 
     return button;
   }
@@ -260,6 +352,8 @@ class Game {
     if (this.current_scene == "lobby" && this.player == 1 && this.state.player_2_present == false) {
       this.lobby.info_text.text = "WAITING FOR PLAYER 2" + ".".repeat(repeats + 1);
     }
+
+    this.test_ball.update();
 
     this.render();
   }
