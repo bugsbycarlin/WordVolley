@@ -23,7 +23,7 @@ class Ball {
       self.fireSprite.position.set(640, 360);
       self.parent.addChild(self.fireSprite);
       self.fireSprite.animationSpeed = 0.5; 
-      self.fireSprite.scale.set(0.6, 0.6)
+      self.fireSprite.scale.set(0.4, 0.6)
       self.fireSprite.play();
       self.fireSprite.visible = false;
     });
