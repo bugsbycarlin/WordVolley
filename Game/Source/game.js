@@ -17,6 +17,8 @@ class Game {
       document.getElementById("mainDiv").style.marginTop = -480;
     }
 
+    this.loadWords()
+
     // Create the pixi application
     pixi = new PIXI.Application(this.width, this.height, {antialias: true});
     document.getElementById("mainDiv").appendChild(pixi.view);
@@ -26,7 +28,7 @@ class Game {
     this.multiplayer = new Multiplayer(this);
 
     this.initialize();
-    this.resetTitle(); 
+    this.resetTitle();
 
     // document.addEventListener("click", function(ev) {self.handleMouse(ev)}, false);
 
@@ -47,32 +49,6 @@ class Game {
         self.multiplayer.leaveGame(self.game_code, self.player)
       }
     })
-
-
-
-    //this.scenes["title"].addChild(this.test_ball);
-    // this.test_ball.position.set(this.width * 1/8, this.height * 1/3);
-    // this.test_ball.addWord("hords");
-    // this.test_ball.addWord("horns");
-    // this.test_ball.addWord("morns");
-    // this.test_ball.addWord("moons");
-
-
-    // var round = function() {
-    //   console.log("firing");
-    //   self.test_ball.vy = -10;
-    //   self.test_ball.vx = 48;
-
-    //   setTimeout(function(){
-    //     self.test_ball.vy = -10;
-    //     self.test_ball.vx = -48;
-    //   },3000);
-    // }
-    // setInterval(round,6000);
-    // round();
-
-
-
   }
 
 
@@ -95,10 +71,10 @@ class Game {
     pixi.stage.addChild(this.scenes["volley"]);
 
 
-    this.scenes["title"].position.x = this.width;
-    this.scenes["test"] = new PIXI.Container();
-    pixi.stage.addChild(this.scenes["test"]);
-    this.initializeTestScreen();
+    // this.scenes["title"].position.x = this.width;
+    // this.scenes["test"] = new PIXI.Container();
+    // pixi.stage.addChild(this.scenes["test"]);
+    // this.initializeTestScreen();
 
 
     this.alertBox = new PIXI.Container();
@@ -108,6 +84,34 @@ class Game {
     // this.initializeSetupCreate();
     // this.initializeSetupJoin();
     this.initializeAlertBox();
+  }
+
+  loadWords() {
+    var self = this;
+    this.legal_words = {};
+    var request = new XMLHttpRequest();
+    request.open("GET", "Dada/legal_words.txt.gz", true);
+    request.responseType = "arraybuffer";
+    request.onload = function(e) {
+
+      var word_list = new TextDecoder("utf-8").decode(
+        new Zlib.Gunzip(
+          new Uint8Array(this.response)
+        ).decompress()
+      );
+      word_list = word_list.split(/\n/);
+      self.legal_words = {};
+      for (var i = 4; i <= 7; i++) {
+        self.legal_words[i] = {};
+      }
+      for (var i = 0; i < word_list.length; i++) {
+        var word = word_list[i];
+        if (word != null && word.length >= 4 && word.length <= 7) {
+          self.legal_words[word.length][word.toUpperCase()] = 1;
+        }
+      }
+    };
+    request.send();
   }
 
 
@@ -168,16 +172,70 @@ class Game {
     //   volley: "",
     //   turn: ""
     // };
-    this.state.origin = "STEVE";
-    this.state.target = "BRIAN";
-    this.state.volley = "";
+
+    var choice_size = this.state.word_size
+    if (choice_size == 1) {
+      choice_size = Math.floor(Math.random() * 4) + 4;
+    }
+
+    var words = Object.keys(this.legal_words[choice_size]);
+    this.state.origin = words[Math.floor(Math.random() * words.length)];
+
+    this.state.target = words[Math.floor(Math.random() * words.length)];
+    var tries = 3;
+    while(this.state.target == this.state.origin && tries > 0) {
+      this.state.target = words[Math.floor(Math.random() * words.length)];
+      tries -= 1;
+    }
+    this.state.volley = this.state.origin;
+    this.state.live_word = this.state.origin;
     this.state.turn = 1 + Math.floor(Math.random() * 2);
-    this.multiplayer.update({
+    this.state.volley_state = "pre";
+    this.volley_start = Date.now();
+
+    var nugget = {
       origin: this.state.origin,
       target: this.state.target,
       volley: this.state.volley,
+      live_word: this.state.live_word,
       turn: this.state.turn,
-    });
+      volley_state: this.state.volley_state,
+    };
+    console.log(nugget)
+    this.multiplayer.update(nugget);
+  }
+
+
+  volleyActive(send) {
+    this.state.volley_state = "active";
+    this.volley_start = Date.now();
+    this.ball.visible = true;
+    this.live_word_letter_choice = 0;
+    this.setLiveWord();
+
+    if (this.player == this.state.turn) {
+      for (var i = 0; i < this.letterPalette.length; i++) {
+        this.letterPalette[i].enable();
+      }
+    } else {
+      for (var i = 0; i < this.letterPalette.length; i++) {
+        this.letterPalette[i].disable();
+      }
+    }
+    
+    if(send) {
+      this.multiplayer.update({
+        volley_state: this.state.volley_state,
+      });
+    }
+  }
+
+
+  setLiveWord() {
+    for (var i = 0; i < this.live_word_letters.length; i++) {
+      this.live_word_letters[i].visible = true;
+      this.live_word_letters[i].text = game.state.live_word[i];
+    }
   }
 
 
@@ -279,6 +337,7 @@ class Game {
 
 
   makeLetterPalette(parent, x, y, action) {
+    var palette = [];
     var mat = PIXI.Sprite.from(PIXI.Texture.WHITE);
     mat.width = 13 * 80;
     mat.height = 160;
@@ -293,7 +352,7 @@ class Game {
     for (var h = 0; h < 2; h++) {
       for (var i = 0; i < 13; i++) {
         let letter = letters[h][i];
-        this.makeButton(
+        var button = this.makeButton(
           parent,
           x - 7*size + i*size, y + (h == 0 ? -size/2 : size/2),
           letter, size, 6, 0x000000,
@@ -320,8 +379,10 @@ class Game {
             }
           }
         );
+        palette.push(button);
       }
     }
+    return palette;
   }
 
 
@@ -353,7 +414,24 @@ class Game {
       this.lobby.info_text.text = "WAITING FOR PLAYER 2" + ".".repeat(repeats + 1);
     }
 
-    this.test_ball.update();
+    // this.test_ball.update();
+
+    if (this.current_scene == "volley" && this.state.volley_state == "pre") {
+      var time_remaining = 3 - (Date.now() - this.volley_start) / 1000;
+      this.volley.info_text.text = "READY? " + Math.floor(time_remaining);
+
+      if (this.state.turn == this.player && time_remaining <= 0) {
+        console.log("Setting active volley");
+        game.volleyActive(true);
+      }
+    }
+
+    if (this.current_scene == "volley" && this.state.volley_state == "active") {
+      var time_remaining = this.state.time_limit - (Date.now() - this.volley_start)/1000;
+      var minutes = Math.floor(time_remaining / 60);
+      var seconds = Math.floor(time_remaining - 60*minutes);
+      this.volley.info_text.text = minutes + ":" + seconds.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false});
+    }
 
     this.render();
   }

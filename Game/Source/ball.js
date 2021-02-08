@@ -131,6 +131,11 @@ class Ball {
   }
 
 
+  clear() {
+    for (var i = 0; i < 5; i++) this.words[i].text = "";
+  }
+
+
   addWord(word, location = 0) {
     for (var i = 4; i > 0; i--) this.words[i].text = this.words[i - 1].text;
     this.words[0].text = word;

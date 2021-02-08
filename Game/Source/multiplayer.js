@@ -5,15 +5,6 @@ class Multiplayer {
   constructor(game) {
     this.database = firebase.database();
     this.game = game;
-
-
-    // var volleyRef = this.database.ref("games/ancha/volley");
-    // volleyRef.on("value", (snapshot) => {
-    //   const data = snapshot.val();
-    //   console.log("Updated volley");
-    //   console.log(data);
-    //   this.game.volley = data;
-    // });
   }
 
 
@@ -46,7 +37,7 @@ class Multiplayer {
       1: 5,
       2: 6,
       3: 7,
-      4: -1
+      4: 1,
     };
 
     console.log(this.game.time_limit_choice);
@@ -65,10 +56,12 @@ class Multiplayer {
       player_2_ready: false,
       time_limit: time_limits[this.game.time_limit_choice],
       word_size: word_sizes[this.game.word_size_choice],
+      live_word: "",
       origin: "",
       target: "",
       volley: "",
-      turn: ""
+      turn: 1,
+      volley_state: "none",
     };
 
     this.database.ref("/games/" + game_code).set(game.state, (error) => {
@@ -218,12 +211,47 @@ class Multiplayer {
     ref_volley.on("value", (snapshot) => {
       // TO DO: more stuff happens here. like, critical game stuff.
       game.state.volley = snapshot.val();
+      if (game.ball != null) {
+        if (game.state.volley == "") {
+          // clear the ball
+          game.ball.clear();
+        } else {
+          var words = game.state.volley.split("-");
+          var last_word = words[words.length - 1];
+          if (last_word != game.ball.words[0].text) {
+            game.ball.addWord(last_word);
+          }
+        }
+      }
+    });
+
+    var ref_volley_state = this.database.ref("games/" + game.game_code + "/volley_state");
+    ref_volley_state.on("value", (snapshot) => {
+      // TO DO: more stuff happens here. like, critical game stuff.
+      
+      if (game.state.volley_state == "pre" && snapshot.val() == "active") {
+        game.state.volley_state = snapshot.val();
+        game.volleyActive();
+      } else if ((game.state.volley_state == "post" || game.state.volley_state == "none") && snapshot.val() == "pre") {
+        game.state.volley_state = snapshot.val();
+        game.volley_start = Date.now();
+      }
     });
 
     var ref_turn = this.database.ref("games/" + game.game_code + "/turn");
     ref_turn.on("value", (snapshot) => {
       // TO DO: more stuff happens here. like, critical game stuff.
       game.state.turn = snapshot.val();
+    });
+
+    var ref_turn = this.database.ref("games/" + game.game_code + "/live_word");
+    ref_turn.on("value", (snapshot) => {
+      // TO DO: more stuff happens here. like, critical game stuff.
+      game.state.live_word = snapshot.val();
+      if (game.live_word != null) {
+        // game.live_word.text = game.state.live_word;
+        game.setLiveWord();
+      }
     });
 
   }
