@@ -6,6 +6,8 @@
 // The head moves, and the tail follows along gradually.
 //
 
+
+
 class Ball {
   constructor(parent, word_length, x, y, left_bound, right_bound, bottom_bound) {
     
@@ -15,18 +17,17 @@ class Ball {
     this.right_bound = right_bound;
     this.bottom_bound = bottom_bound;
 
+    this.permanent_bottom_bound = bottom_bound;
+    this.bounce = false;
+
     var self = this;
-    PIXI.Loader.shared.add("Art/fire.json").load(function() {
-      var sheet = PIXI.Loader.shared.resources["Art/fire.json"].spritesheet;
-      self.fireSprite = new PIXI.AnimatedSprite(sheet.animations["fire"]);
-      self.fireSprite.anchor.set(0.5,0.85);
-      self.fireSprite.position.set(640, 360);
-      self.parent.addChild(self.fireSprite);
-      self.fireSprite.animationSpeed = 0.5; 
-      self.fireSprite.scale.set(0.4, 0.6)
-      self.fireSprite.play();
-      self.fireSprite.visible = false;
-    });
+    if (!PIXI.Loader.shared.resources["Art/fire.json"]) {
+      PIXI.Loader.shared.add("Art/fire.json").load(function() {
+        self.defineFireSprite()
+      });
+    } else {
+      this.defineFireSprite();
+    }
 
     this.words = [];
     for (var i = 0; i < 5; i++) {
@@ -47,6 +48,19 @@ class Ball {
     this.gravity = 0;
 
     this.flying = false;
+  }
+
+
+  defineFireSprite() {
+    var sheet = PIXI.Loader.shared.resources["Art/fire.json"].spritesheet;
+    this.fireSprite = new PIXI.AnimatedSprite(sheet.animations["fire"]);
+    this.fireSprite.anchor.set(0.5,0.85);
+    this.fireSprite.position.set(640, 360);
+    this.parent.addChild(this.fireSprite);
+    this.fireSprite.animationSpeed = 0.5; 
+    this.fireSprite.scale.set(0.4, 0.6)
+    this.fireSprite.play();
+    this.fireSprite.visible = false;
   }
 
 
@@ -108,6 +122,8 @@ class Ball {
     this.history = [];
     this.history_size = 25;
 
+    this.fireball = false;
+
     var tween = new TWEEN.Tween(this.words[0].scale)
     .to({x: 0.35})
     .duration(250)
@@ -127,6 +143,20 @@ class Ball {
       for (var i = 1; i < 5; i++) {
         this.words[i].visible = false;
       }
+    }
+  }
+
+
+  hide() {
+    for (var i = 0; i < 5; i++) {
+      this.words[i].visible = false;
+    }
+  }
+
+
+  show() {
+    for (var i = 0; i < 5; i++) {
+      this.words[i].visible = true;
     }
   }
 
@@ -182,6 +212,8 @@ class Ball {
           this.fireSprite.y = hp[1];
           this.fireSprite.rotation = hp[2] + Math.PI/2 * (this.words[0].vx > 0 ? -1 : 1);
           this.fireSprite.visible = true;
+        } else {
+          this.fireSprite.visible = false;
         }
 
         var backfill = 1;
@@ -196,15 +228,36 @@ class Ball {
         }     
       }
     } else {
-      for (var i = 0; i < 5; i++) {
+      if (this.bounce == false) {
+        if (this.flying) {
+          this.flying = false;
+          console.log("Duration: " + (Date.now() - this.start_time));
+          console.log(this.history);
+          this.last_vx = this.words[0].vx;
+          this.last_vy = this.words[0].vy;
+          this.last_rotation = this.words[0].rotation;
+          console.log(this.last_vx);
+          console.log(this.last_vy);
+          console.log(this.last_rotation);
+        }
         this.words[0].vy = 0;
         this.words[0].vx = 0;
-      }
-      this.words[0].position.y = this.bottom_bound;
-      if (this.flying) {
-        this.flying = false;
-        console.log("Duration: " + (Date.now() - this.start_time));
-        console.log(this.history);
+        this.words[0].position.y = this.bottom_bound;
+      } else {
+        this.words[0].vy *= -1;
+        this.words[0].y += this.words[0].vy;
+        this.words[0].x += this.words[0].vx;
+
+        if (this.words[0].vx > 0) {
+          this.words[0].rotation = Math.atan2(this.words[0].vy, this.words[0].vx);
+        } else if (this.words[0].vx < 0) {
+          this.words[0].rotation = Math.atan2(-this.words[0].vy, -this.words[0].vx);
+        }
+
+        this.history.push([this.words[0].x, this.words[0].y, this.words[0].rotation]);
+        if (this.history.length > this.history_size) {
+          this.history.shift();
+        }
       }
     }
   }

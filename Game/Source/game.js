@@ -30,19 +30,9 @@ class Game {
     this.initialize();
     this.resetTitle();
 
-    // document.addEventListener("click", function(ev) {self.handleMouse(ev)}, false);
-
     this.current_scene = "title";
 
     setInterval(function() {self.update()},33);
-
-    // setInterval(function() {
-    //   console.log("Stat poll.")
-    //   console.log("Player: " + self.player);
-    //   console.log("Game code: " + self.game_code);
-    //   console.log("Game state: ")
-    //   console.log(self.state);
-    // },3000);
 
     window.addEventListener("unload", function(ev) {
       if (self.game_code != "" && self.player > 0) {
@@ -53,7 +43,6 @@ class Game {
 
 
   initialize() {
-    // create three containers: title, setup, and gameplay
     this.scenes = [];
     this.scenes["title"] = new PIXI.Container();
     this.scenes["setup_create"] = new PIXI.Container();
@@ -71,24 +60,22 @@ class Game {
     pixi.stage.addChild(this.scenes["volley"]);
 
 
-    // this.scenes["title"].position.x = this.width;
-    // this.scenes["test"] = new PIXI.Container();
-    // pixi.stage.addChild(this.scenes["test"]);
-    // this.initializeTestScreen();
-
-
     this.alertBox = new PIXI.Container();
     pixi.stage.addChild(this.alertBox);
 
     this.initializeTitleScreen();
-    // this.initializeSetupCreate();
-    // this.initializeSetupJoin();
     this.initializeAlertBox();
   }
+
 
   loadWords() {
     var self = this;
     this.legal_words = {};
+    this.common_words = {};
+    for (var i = 4; i <= 7; i++) {
+      this.legal_words[i] = {};
+      this.common_words[i] = {};
+    }
     var request = new XMLHttpRequest();
     request.open("GET", "Dada/legal_words.txt.gz", true);
     request.responseType = "arraybuffer";
@@ -100,14 +87,15 @@ class Game {
         ).decompress()
       );
       word_list = word_list.split(/\n/);
-      self.legal_words = {};
-      for (var i = 4; i <= 7; i++) {
-        self.legal_words[i] = {};
-      }
       for (var i = 0; i < word_list.length; i++) {
-        var word = word_list[i];
+        var thing = word_list[i].split(",");
+        var marking = thing[0];
+        var word = thing[1];
         if (word != null && word.length >= 4 && word.length <= 7) {
           self.legal_words[word.length][word.toUpperCase()] = 1;
+          if (marking == 1) {
+            self.common_words[word.length][word.toUpperCase()] = 1;
+          }
         }
       }
     };
@@ -121,7 +109,6 @@ class Game {
     var self = this;
 
     this.multiplayer.createNewGame(function() {
-      console.log(self.state.player_1_character);
       self.resetSetupLobby();
 
       self.lobby.game_code.text = "GAME CODE " + self.game_code;
@@ -150,103 +137,6 @@ class Game {
 
       })
     });
-  }
-
-
-  resetVolley() {
-    // game.state = {
-    //   player_1_present: true,
-    //   player_2_present: false, 
-    //   player_1_character: "A",
-    //   player_2_character: "B",
-    //   player_1_name: "ALFIE",
-    //   player_2_name: "BERT",
-    //   player_1_score: 0,
-    //   player_2_score: 0,
-    //   player_1_ready: false,
-    //   player_2_ready: false,
-    //   time_limit: time_limits[this.game.time_limit_choice],
-    //   word_size: word_sizes[this.game.word_size_choice],
-    //   origin: "",
-    //   target: "",
-    //   volley: "",
-    //   turn: ""
-    // };
-
-    var choice_size = this.state.word_size
-    if (choice_size == 1) {
-      choice_size = Math.floor(Math.random() * 4) + 4;
-    }
-
-    var words = Object.keys(this.legal_words[choice_size]);
-    this.state.origin = words[Math.floor(Math.random() * words.length)];
-
-    this.state.target = words[Math.floor(Math.random() * words.length)];
-    var tries = 3;
-    while(this.state.target == this.state.origin && tries > 0) {
-      this.state.target = words[Math.floor(Math.random() * words.length)];
-      tries -= 1;
-    }
-    this.state.volley = this.state.origin;
-    this.state.live_word = this.state.origin;
-    this.state.turn = 1 + Math.floor(Math.random() * 2);
-    this.state.volley_state = "pre";
-    this.volley_start = Date.now();
-
-    var nugget = {
-      origin: this.state.origin,
-      target: this.state.target,
-      volley: this.state.volley,
-      live_word: this.state.live_word,
-      turn: this.state.turn,
-      volley_state: this.state.volley_state,
-    };
-    console.log(nugget)
-    this.multiplayer.update(nugget);
-  }
-
-
-  volleyActive(send) {
-    this.state.volley_state = "active";
-    this.volley_start = Date.now();
-    this.ball.visible = true;
-    this.live_word_letter_choice = 0;
-    this.setLiveWord();
-
-    if (this.player == this.state.turn) {
-      for (var i = 0; i < this.letterPalette.length; i++) {
-        this.letterPalette[i].enable();
-      }
-    } else {
-      for (var i = 0; i < this.letterPalette.length; i++) {
-        this.letterPalette[i].disable();
-      }
-    }
-    
-    if(send) {
-      this.multiplayer.update({
-        volley_state: this.state.volley_state,
-      });
-    }
-  }
-
-
-  setLiveWord() {
-    for (var i = 0; i < this.live_word_letters.length; i++) {
-      this.live_word_letters[i].visible = true;
-      this.live_word_letters[i].text = game.state.live_word[i];
-    }
-  }
-
-
-  startVolleying() {
-    if (this.player == 1) {
-      // some extra work to do to start the game
-      this.resetVolley();
-    }
-
-    this.initializeVolleyScreen();
-    this.animateSceneSwitch("lobby", "volley");
   }
 
 
@@ -407,30 +297,291 @@ class Game {
   }
 
 
+  volleySetup() {
+    var choice_size = this.state.word_size
+    if (choice_size == 1) {
+      choice_size = Math.floor(Math.random() * 4) + 4;
+    }
+
+    var words = Object.keys(this.common_words[choice_size]);
+    this.state.origin = words[Math.floor(Math.random() * words.length)];
+
+    this.state.target = words[Math.floor(Math.random() * words.length)];
+
+    // this.state.origin = "BEER"
+    // this.state.target = "BEET"
+    var tries = 3;
+    while(this.state.target == this.state.origin && tries > 0) {
+      this.state.target = words[Math.floor(Math.random() * words.length)];
+      tries -= 1;
+    }
+
+    this.state.volley = this.state.origin;
+    this.state.live_word = this.state.origin;
+    this.state.turn = 1 + Math.floor(Math.random() * 2);
+
+    this.multiplayer.update({
+      origin: this.state.origin,
+      target: this.state.target,
+      volley: this.state.volley,
+      live_word: this.state.live_word,
+      turn: this.state.turn,
+      volley_state: "change_to_start",
+    });
+  }
+
+
+  startVolleyScene() {
+
+    this.initializeVolleyScreen();
+    this.animateSceneSwitch("lobby", "volley");
+
+    this.state.volley_state = "start";
+    this.volley_start = Date.now();
+  }
+
+
+  volleyLob(direction) {
+    this.state.volley_state = "lob";
+    if (direction == 1) {
+      this.ball.words[0].position.set(this.width * 1/4, this.height * 4/16);
+      this.ball.words[0].rotation = Math.atan2(-15, 26.4);
+    } else if (direction == -1) {
+      this.ball.words[0].position.set(this.width * 3/4, this.height * 4/16);
+      this.ball.words[0].rotation = Math.atan2(-15, -26.4);
+    }
+    this.volley.info_text.text = "";
+    this.ball.show();
+    this.ball.smasha(direction, 640, 640/7, 800);
+    this.play_button.disable();
+    var self = this;
+    setTimeout(function() {
+      self.volleyStateInteractive();
+    }, 800)
+  }
+
+
+  volleyStateInteractive() {
+    this.state.volley_state = "interactive";
+    this.volley_start = Date.now();
+    this.live_word_letter_choice = 0;
+    this.setLiveWord();
+    this.play_button.disable();
+
+    if (this.player == this.state.turn) {
+      for (var i = 0; i < this.letterPalette.length; i++) {
+        this.letterPalette[i].enable();
+      }
+      this.live_word_letter_choice = 0
+      for (var i = 0; i < this.live_word_letters.length; i++) {
+        this.live_word_letters[i].backing.tint = (i == this.live_word_letter_choice ? 0xf1e594 : 0xFFFFFF);
+      }
+    } else {
+      for (var i = 0; i < this.letterPalette.length; i++) {
+        this.letterPalette[i].disable();
+      }
+      for (var i = 0; i < this.live_word_letters.length; i++) {
+        this.live_word_letters[i].backing.tint = 0xFFFFFF;
+      }
+    }
+  }
+
+
+  volleyMiss() {
+    var self = this;
+
+    this.play_button.disable();
+    this.state.volley_state = "animating_miss";
+    
+    this.ball.words[0].vx = this.ball.last_vx;
+    this.ball.words[0].vy = this.ball.last_vy;
+    this.ball.words[0].rotation = this.ball.last_rotation;
+    this.ball.bottom_bound = this.height * 7/16 + 80;
+    this.ball.flying = true;
+    this.ball.bounce = true;
+
+    this.volley.info_text.text = "";
+
+    self.state.live_word = "";
+    self.setLiveWord();
+
+    setTimeout(function() {
+      self.ball.flying = false;
+      self.ball.bounce = false;
+      self.ball.bottom_bound = self.ball.permanent_bottom_bound;
+      self.ball.clear();
+
+      if (self.player == 1) {
+        // some extra work to do to start the game
+        self.volleySetup();
+
+        game.state.volley_state = "start";
+        game.volley_start = Date.now();
+      }
+    }, 800);
+  }
+
+
+  volleyHit() {
+    var self = this;
+
+    if (this.player == this.state.turn) {
+      if (this.state.live_word != this.state.target) { // regular volley
+          this.state.volley = this.state.volley + "-" + this.state.live_word;
+          this.state.turn = this.state.turn == 1 ? 2 : 1;
+          
+          this.multiplayer.update({
+            volley_state: "lob",
+            volley: this.state.volley,
+            turn: this.state.turn,
+          });
+
+          this.setPriorWords();
+          this.volleyLob((this.state.turn == 1 ? -1 : 1));
+      } else { // winning shot
+        if (this.player == 1) {
+          this.state.player_1_score += 1;
+          this.volley.player_1_score.text = this.state.player_1_score;
+        } else if (this.player == 2) {
+          this.state.player_2_score += 1;
+          this.volley.player_2_score.text = this.state.player_2_score;
+        }
+
+        this.state.volley = this.state.volley + "-" + this.state.live_word;
+        this.state.live_word = "";
+
+        this.state.volley_state = "winning_shot";
+
+        this.multiplayer.update({
+          volley: this.state.volley,
+          live_word: this.state.live_word,
+          player_1_score: this.state.player_1_score,
+          player_2_score: this.state.player_2_score,
+          volley_state: this.state.volley_state,
+        });
+
+        this.volleyWinning((game.state.turn == 1 ? 1 : -1));
+      }
+    }
+  }
+
+
+  volleyWinning(direction) {
+    if (direction == 1) {
+      this.ball.words[0].position.set(this.width * 1/4, this.height * 4/16);
+      this.ball.words[0].rotation = Math.atan2(-15, 26.4);
+    } else if (direction == -1) {
+      this.ball.words[0].position.set(this.width * 3/4, this.height * 4/16);
+      this.ball.words[0].rotation = Math.atan2(-15, -26.4);
+    }
+    this.volley.info_text.text = "";
+    this.ball.show();
+    this.ball.smasha(direction, 1600, 640/7, 600, true);
+    this.ball.words[0].vy *= 0;
+    this.ball.bottom_bound = 5000;
+    this.play_button.disable();
+
+    this.state.live_word = "";
+    this.setLiveWord();
+
+    setTimeout(function() {
+      self.ball.flying = false;
+      self.ball.bounce = false;
+      self.ball.bottom_bound = self.ball.permanent_bottom_bound;
+      self.ball.clear();
+
+      if (self.player == 1) {
+        // some extra work to do to start the game
+        self.volleySetup();
+
+        game.state.volley_state = "start";
+        game.volley_start = Date.now();
+      }
+    }, 800);
+  }
+
+
+  setLiveWord() {
+    if (this.state.volley_state == "interactive" && this.live_word_letters != null) {
+      for (var i = 0; i < this.live_word_letters.length; i++) {
+        this.live_word_letters[i].text.text = this.state.live_word[i];
+        this.live_word_letters[i].backing.tint = (i == this.live_word_letter_choice ? 0xf1e594 : 0xFFFFFF);
+      }
+      this.liveWordContainer.visible = true;
+    } else {
+      for (var i = 0; i < this.live_word_letters.length; i++) {
+        this.live_word_letters[i].text.text = this.state.live_word[i];
+        this.live_word_letters[i].backing.tint = 0xFFFFFF;
+      }
+      this.liveWordContainer.visible = false;
+    }
+  }
+
+
+  setPriorWords() {
+    this.priorWords = this.state.volley.split("-");
+  }
+
+
+  checkRedUnderline() {
+    return !(this.state.live_word in this.legal_words[this.state.origin.length]);
+  }
+
+
+  checkBlueUnderline() {
+    return (this.state.live_word != this.ball.words[0].text.text
+      && this.priorWords.includes(this.state.live_word));
+  }
+
+
   update() {
+
+    if (this.current_scene == "volley") {
+      this.ball.update();
+    }
 
     var repeats = Math.floor(4/1000.0 * (Date.now() - this.start_time)) % 3;
     if (this.current_scene == "lobby" && this.player == 1 && this.state.player_2_present == false) {
       this.lobby.info_text.text = "WAITING FOR PLAYER 2" + ".".repeat(repeats + 1);
     }
 
-    // this.test_ball.update();
-
-    if (this.current_scene == "volley" && this.state.volley_state == "pre") {
+    if (this.current_scene == "volley" && this.state.volley_state == "start") {
       var time_remaining = 3 - (Date.now() - this.volley_start) / 1000;
+      if (time_remaining < 0) time_remaining = 0;
       this.volley.info_text.text = "READY? " + Math.floor(time_remaining);
 
-      if (this.state.turn == this.player && time_remaining <= 0) {
-        console.log("Setting active volley");
-        game.volleyActive(true);
+      if (time_remaining <= 0) {
+        game.volleyLob((this.state.turn == 1 ? -1 : 1));
       }
     }
 
-    if (this.current_scene == "volley" && this.state.volley_state == "active") {
+    if (this.current_scene == "volley" && this.state.volley_state == "interactive") {
       var time_remaining = this.state.time_limit - (Date.now() - this.volley_start)/1000;
+      if (time_remaining < 0) time_remaining = 0;
+      
       var minutes = Math.floor(time_remaining / 60);
       var seconds = Math.floor(time_remaining - 60*minutes);
       this.volley.info_text.text = minutes + ":" + seconds.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false});
+    
+      if (time_remaining <= 0) {
+
+        if (this.player == this.state.turn) {
+          game.volleyMiss();
+
+          if (this.player == 1) {
+            this.state.player_2_score += 1;
+            this.volley.player_2_score.text = this.state.player_2_score;
+          } else if (this.player == 2) {
+            this.state.player_1_score += 1;
+            this.volley.player_1_score.text = this.state.player_1_score;
+          }
+          this.multiplayer.update({
+            player_1_score: this.state.player_1_score,
+            player_2_score: this.state.player_2_score,
+            volley_state: this.state.volley_state,
+          })
+        }
+      }
     }
 
     this.render();
@@ -468,7 +619,6 @@ class Game {
 }
 
 function twanimate(time) {
-  // console.log("at least i'm twaninmatoetr " + time);
     window.requestAnimationFrame(twanimate);
     TWEEN.update(time);
 }

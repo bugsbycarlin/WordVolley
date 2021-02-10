@@ -337,7 +337,7 @@ updated with a live word tracker and some more safety validation:
         },
         "volley_state": {
           ".write": true,
-          ".validate": "newData.val().matches(/^[a-z]{0,8}$/)",
+          ".validate": "newData.val().matches(/^[a-z_]{0,40}$/)",
         },
       }
     }

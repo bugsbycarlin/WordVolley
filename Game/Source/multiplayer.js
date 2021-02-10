@@ -54,7 +54,7 @@ class Multiplayer {
       player_2_score: 0,
       player_1_ready: false,
       player_2_ready: false,
-      time_limit: time_limits[this.game.time_limit_choice],
+      time_limit: time_limits[this.game.time_limit_choice] + 1, // one second to make it nicer
       word_size: word_sizes[this.game.word_size_choice],
       live_word: "",
       origin: "",
@@ -115,7 +115,7 @@ class Multiplayer {
   setWatches() {
     var self = this;
     var game = this.game;
-    
+
     var ref_player_2_present = this.database.ref("games/" + game.game_code + "/player_2_present");
     ref_player_2_present.on("value", (snapshot) => {
       if (game.state.player_2_present == false && snapshot.val() == true) {
@@ -179,11 +179,25 @@ class Multiplayer {
       game.lobby.player_2_name.text = snapshot.val();
     });
 
+    var ref_player_1_score = this.database.ref("games/" + game.game_code + "/player_1_score");
+    ref_player_1_score.on("value", (snapshot) => {
+      game.state.player_1_score = snapshot.val();
+      if (game.volley != null) game.volley.player_1_score.text = snapshot.val();
+    });
+
+    var ref_player_2_score = this.database.ref("games/" + game.game_code + "/player_2_score");
+    ref_player_2_score.on("value", (snapshot) => {
+      game.state.player_2_score = snapshot.val();
+      if (game.volley != null) game.volley.player_2_score.text = snapshot.val();
+    });
+
     var ref_player_1_ready = this.database.ref("games/" + game.game_code + "/player_1_ready");
     ref_player_1_ready.on("value", (snapshot) => {
       game.state.player_1_ready = snapshot.val();
       if (game.state.player_1_ready && game.state.player_2_ready) {
-        game.startVolleying();
+        if (game.state.origin == "" && game.player == 1) {
+          game.volleySetup();
+        }
       }
     });
 
@@ -191,68 +205,186 @@ class Multiplayer {
     ref_player_2_ready.on("value", (snapshot) => {
       game.state.player_2_ready = snapshot.val();
       if (game.state.player_1_ready && game.state.player_2_ready) {
-        game.startVolleying();
+        if (game.state.origin == "" && game.player == 1) {
+          game.volleySetup();
+        }
       }
     });
 
-    var ref_origin = this.database.ref("games/" + game.game_code + "/origin");
-    ref_origin.on("value", (snapshot) => {
-      game.state.origin = snapshot.val();
-      if (game.volley != null) game.volley.statement.text = game.state.origin + "        " + game.state.target;
-    });
 
-    var ref_target = this.database.ref("games/" + game.game_code + "/target");
-    ref_target.on("value", (snapshot) => {
-      game.state.target = snapshot.val();
-      if (game.volley != null) game.volley.statement.text = game.state.origin + "        " + game.state.target;
-    });
 
-    var ref_volley = this.database.ref("games/" + game.game_code + "/volley");
-    ref_volley.on("value", (snapshot) => {
-      // TO DO: more stuff happens here. like, critical game stuff.
-      game.state.volley = snapshot.val();
-      if (game.ball != null) {
-        if (game.state.volley == "") {
-          // clear the ball
-          game.ball.clear();
-        } else {
-          var words = game.state.volley.split("-");
-          var last_word = words[words.length - 1];
-          if (last_word != game.ball.words[0].text) {
-            game.ball.addWord(last_word);
+    var ref_state_change = this.database.ref("games/" + game.game_code);
+    ref_state_change.on("value", (snapshot) => {
+      var old_state = game.state;
+      var new_state = snapshot.val();
+      console.log(old_state);
+      console.log(new_state);
+      console.log(old_state.live_word);
+      console.log(new_state.live_word);
+      console.log(old_state.volley_state);
+      console.log(new_state.volley_state);
+      game.state = new_state;
+
+      if (game.current_scene == "lobby" && new_state.volley_state == "change_to_start") {
+        game.startVolleyScene();
+      }
+
+      if (game.current_scene == "volley" && old_state.volley_state != "start" && new_state.volley_state == "start") {
+        game.state.volley_state = "start";
+        game.volley_start = Date.now();
+      }
+
+      if (game.current_scene == "volley" || game.current_scene == "lobby") {
+        if (new_state.origin != old_state.origin || new_state.target != old_state.target) {
+          if (game.volley != null) game.volley.statement.text = game.state.origin + "        " + game.state.target;
+          game.remakeLiveWordContainer();
+        }
+      }
+
+      if (game.current_scene == "volley" && old_state.volley_state == "interactive" && new_state.volley_state == "animating_miss" && new_state.turn != game.player) {
+        game.volleyMiss();
+      }
+
+      if (old_state.live_word != new_state.live_word && game.live_word_letters != null) {
+        game.setLiveWord();
+      }
+
+      if (old_state.volley_state == "interactive" && new_state.volley_state == "lob" && game.player != old_state.turn) {
+        game.volleyLob((old_state.turn == 1 ? -1 : 1));
+      }
+
+      if (old_state.volley_state == "interactive" && new_state.volley_state == "winning_shot" && game.player != old_state.turn) {
+        game.volleyWinning((old_state.turn == 1 ? -1 : 1));
+      }
+
+      if (game.current_scene == "volley" && new_state.volley.length != old_state.volley.length) {
+        game.setPriorWords();
+        if (game.ball != null) {
+          if (game.state.volley == "") {
+            // clear the ball
+            game.ball.clear();
+          } else {
+            var words = game.state.volley.split("-");
+            var last_word = words[words.length - 1];
+            if (last_word != game.ball.words[0].text) {
+              game.ball.addWord(last_word);
+            }
+          }
+        }
+      }
+
+      if (old_state.turn != new_state.turn) {
+        if (game.play_button != null) {
+          if (game.player == game.state.turn) {
+            game.play_button.visible = true;
+            game.play_button.disable();
+          } else {
+            game.play_button.visible = false;
           }
         }
       }
     });
 
-    var ref_volley_state = this.database.ref("games/" + game.game_code + "/volley_state");
-    ref_volley_state.on("value", (snapshot) => {
-      // TO DO: more stuff happens here. like, critical game stuff.
+
+
+    // var ref_origin = this.database.ref("games/" + game.game_code + "/origin");
+    // ref_origin.on("value", (snapshot) => {
+    //   var old_origin = game.state.origin;
+    //   game.state.origin = snapshot.val();
+    //   if (game.volley != null) game.volley.statement.text = game.state.origin + "        " + game.state.target;
+    //   if (old_origin.length != game.state.origin.length) {
+    //     game.remakeLiveWordContainer();
+    //   }
+    // });
+
+    // var ref_target = this.database.ref("games/" + game.game_code + "/target");
+    // ref_target.on("value", (snapshot) => {
+    //   game.state.target = snapshot.val();
+    //   if (game.volley != null) game.volley.statement.text = game.state.origin + "        " + game.state.target;
+    // });
+
+    // var ref_volley = this.database.ref("games/" + game.game_code + "/volley");
+    // ref_volley.on("value", (snapshot) => {
+    //   // TO DO: more stuff happens here. like, critical game stuff.
+    //   var old_volley = game.state.volley;
+    //   game.state.volley = snapshot.val();
+    //   game.setPriorWords();
+    //   if (game.ball != null) {
+    //     if (game.state.volley == "") {
+    //       // clear the ball
+    //       game.ball.clear();
+    //     } else {
+    //       var words = game.state.volley.split("-");
+    //       var last_word = words[words.length - 1];
+    //       if (last_word != game.ball.words[0].text) {
+    //         game.ball.addWord(last_word);
+    //       }
+    //     }
+    //   }
+
+    //   if (game.current_scene == "volley" && game.state != null && game.state.volley_state != "pre" && game.state.volley != old_volley && game.state.volley != "" && game.state.volley.includes(old_volley)) {
+    //     console.log(game.state.volley_state);
+    //     console.log("i got here too early");
+    //     game.volleyLob((game.state.turn == 1 ? 1 : -1));
+    //   }
+    // });
+
+    // var ref_volley_state = this.database.ref("games/" + game.game_code + "/volley_state");
+    // ref_volley_state.on("value", (snapshot) => {
+
+
+    //   if (game.state.volley_state == "sync") {
+    //     game.state.volley_state = "pre";
+    //     game.volley_start = Date.now();
+    //   }
+
+    //   console.log("Anka");
+    //   console.log("State: " + game.state.volley_state);
+    //   console.log("Player: " + game.player);
+    //   console.log("Turn: " + game.state.turn);
+    //   if (game.state.volley_state == "animation_winning" && game.player != game.state.turn) {
+    //     console.log("I am being induced to take the winning shot from afar")
+    //     game.volleyWinning((game.state.turn == 1 ? -1 : 1))
+    //   }
+
+    // });
+
+    // var ref_live_word = this.database.ref("games/" + game.game_code + "/live_word");
+    // ref_live_word.on("value", (snapshot) => {
+    //   if (game.live_word_letters != null && game.state.turn != game.player) {
+    //     game.state.live_word = snapshot.val();
+    //     game.setLiveWord(game.state.live_word);
+    //   }
+    // });
+
+    // var ref_turn = this.database.ref("games/" + game.game_code + "/turn");
+    // ref_turn.on("value", (snapshot) => {
+    //   // TO DO: more stuff happens here. like, critical game stuff.
       
-      if (game.state.volley_state == "pre" && snapshot.val() == "active") {
-        game.state.volley_state = snapshot.val();
-        game.volleyActive();
-      } else if ((game.state.volley_state == "post" || game.state.volley_state == "none") && snapshot.val() == "pre") {
-        game.state.volley_state = snapshot.val();
-        game.volley_start = Date.now();
-      }
-    });
+    //   // if (game.state.volley_state == "animating_miss" && game.state.update())
+    //   var old_turn = game.state.turn;
+    //   console.log("updated turn from the other side");
+    //   game.state.turn = snapshot.val();
 
-    var ref_turn = this.database.ref("games/" + game.game_code + "/turn");
-    ref_turn.on("value", (snapshot) => {
-      // TO DO: more stuff happens here. like, critical game stuff.
-      game.state.turn = snapshot.val();
-    });
+    //   if (game.play_button != null) {
+    //     if (game.player == game.state.turn) {
+    //       game.play_button.visible = true;
+    //       game.play_button.disable();
+    //     } else {
+    //       game.play_button.visible = false;
+    //     }
+    //   }
+    // });
 
-    var ref_turn = this.database.ref("games/" + game.game_code + "/live_word");
-    ref_turn.on("value", (snapshot) => {
-      // TO DO: more stuff happens here. like, critical game stuff.
-      game.state.live_word = snapshot.val();
-      if (game.live_word != null) {
-        // game.live_word.text = game.state.live_word;
-        game.setLiveWord();
-      }
-    });
+    // var ref_turn = this.database.ref("games/" + game.game_code + "/live_word");
+    // ref_turn.on("value", (snapshot) => {
+    //   // TO DO: more stuff happens here. like, critical game stuff.
+    //   game.state.live_word = snapshot.val();
+    //   if (game.live_word != null) {
+    //     // game.live_word.text = game.state.live_word;
+    //     game.setLiveWord();
+    //   }
+    // });
 
   }
 
@@ -285,5 +417,9 @@ class Multiplayer {
 
   update(sheet) {
     this.database.ref("games/" + this.game.game_code).update(sheet);
+  }
+
+  updateState() {
+   this.database.ref("games/" + this.game.game_code).update(this.game.state); 
   }
 }
