@@ -111,11 +111,6 @@ class Ball {
     var vy = -1 * (y_distance * 4 / duration_ticks);
     var g = 8 * y_distance / (duration_ticks * duration_ticks);
 
-    console.log("My values are");
-    console.log("vx: " + vx);
-    console.log("vy: " + vy);
-    console.log("g: " + g);
-
     this.words[0].vx = vx;
     this.words[0].vy = vy;
     this.gravity = g;
@@ -231,14 +226,9 @@ class Ball {
       if (this.bounce == false) {
         if (this.flying) {
           this.flying = false;
-          console.log("Duration: " + (Date.now() - this.start_time));
-          console.log(this.history);
           this.last_vx = this.words[0].vx;
           this.last_vy = this.words[0].vy;
           this.last_rotation = this.words[0].rotation;
-          console.log(this.last_vx);
-          console.log(this.last_vy);
-          console.log(this.last_rotation);
         }
         this.words[0].vy = 0;
         this.words[0].vx = 0;

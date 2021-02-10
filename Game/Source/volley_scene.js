@@ -123,6 +123,13 @@ Game.prototype.initializeVolleyScreen = function() {
   this.volley.player_2_score.position.set(this.width * 7/8, this.height * 7/16 + 130);
   this.scenes["volley"].addChild(this.volley.player_2_score);
 
+
+  this.volley.hint_text = new PIXI.Text("", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0xDDDDDD, letterSpacing: 6, align: "center"});
+  this.volley.hint_text.anchor.set(0.5,0.5);
+  this.volley.hint_text.position.set(this.width * 7/8, this.height * 7/16 + 170);
+  this.scenes["volley"].addChild(this.volley.hint_text);
+  this.volley.hint_text.visible = false;
+
   this.backArrow("volley", "title", function() {
     self.multiplayer.leaveGame(self.game_code, self.player)
     self.resetTitle();
@@ -138,7 +145,7 @@ Game.prototype.initializeVolleyScreen = function() {
     "   PLAY", 60, 6, 0xFFFFFF,
     236, 84, 0x3cb0f3,
     function() {
-      self.volleyHit();
+      self.returnVolley();
     }
   );
   this.play_button.racket_sprite = new PIXI.Sprite(PIXI.Texture.from("Art/racket.png"));
@@ -149,26 +156,30 @@ Game.prototype.initializeVolleyScreen = function() {
   this.play_button.visible = false;
 
   this.letterPalette = this.makeLetterPalette(this.scenes["volley"], this.width * 9/16, this.height * 14/16, function(letter) {
-    self.live_word_letters[self.live_word_letter_choice].text.text = letter;
-    // underline the bads 
-    var new_live_word = "";
-    for (var i = 0; i < self.live_word_letters.length; i++) {
-      new_live_word += self.live_word_letters[i].text.text;
-    }
-    self.state.live_word = new_live_word;
+    if (self.state.volley_state == "interactive") {
+      self.live_word_letters[self.live_word_letter_choice].text.text = letter;
+      // underline the bads 
+      var new_live_word = "";
+      for (var i = 0; i < self.live_word_letters.length; i++) {
+        new_live_word += self.live_word_letters[i].text.text;
+      }
+      self.state.live_word = new_live_word;
 
-    self.multiplayer.update({
-      live_word: new_live_word
-    })
+      // self.multiplayer.update({
+      //   live_word: new_live_word
+      // })
 
-    self.red_underline.visible = self.checkRedUnderline();
-    self.blue_underline.visible = self.checkBlueUnderline();
+      self.red_underline.visible = self.checkRedUnderline();
+      self.blue_underline.visible = self.checkBlueUnderline();
 
-    if (!self.red_underline.visible && !self.blue_underline.visible && self.player == self.state.turn) {
-      self.play_button.visible = true; //probably not necessary
-      self.play_button.enable();
-    } else {
-      self.play_button.disable();
+      if (!self.red_underline.visible && !self.blue_underline.visible 
+        && self.player == self.state.turn
+        && new_live_word != self.ball.words[0].text.text) {
+        self.play_button.visible = true; //probably not necessary
+        self.play_button.enable();
+      } else {
+        self.play_button.disable();
+      }
     }
   });
   for (var i = 0; i < this.letterPalette.length; i++) {
@@ -187,7 +198,9 @@ Game.prototype.initializeVolleyScreen = function() {
 
 Game.prototype.remakeLiveWordContainer = function() {
   var self = this;
-  this.scenes["volley"].removeChild(this.liveWordContainer)
+  this.scenes["volley"].removeChild(this.liveWordContainer);
+  this.scenes["volley"].removeChild(this.red_underline);
+  this.scenes["volley"].removeChild(this.blue_underline);
   
   this.live_word_letters = [];
   this.liveWordContainer = new PIXI.Container();
@@ -222,6 +235,8 @@ Game.prototype.remakeLiveWordContainer = function() {
           for (var i = 0; i < self.live_word_letters.length; i++) {
             self.live_word_letters[i].backing.tint = (i == self.live_word_letter_choice ? 0xf1e594 : 0xFFFFFF);
           }
+
+          self.play_button.disable();
         }
         self.red_underline.visible = false;
         self.blue_underline.visible = false;

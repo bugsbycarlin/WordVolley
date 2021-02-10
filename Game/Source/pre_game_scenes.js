@@ -12,7 +12,6 @@ Game.prototype.backArrow = function(current, old, action=null) {
   arrow.buttonMode = true;
   arrow.on("click", function() {
     if (action != null) {
-      console.log("Doing action");
       action();
     }
     self.animateSceneSwitch(current, old)
@@ -62,10 +61,8 @@ Game.prototype.changeCharacterArrow = function(scene, player, direction, x, y) {
   arrow.buttonMode = true;
   arrow.on("click", function() {
     var alphabetArray = alphabet.split('');
-    console.log(alphabetArray);
     if (player == 1) {
       var old_character = self.state.player_1_character;
-      console.log(old_character);
       var position = alphabetArray.indexOf(old_character);
       var new_character = alphabetArray[(position + alphabetArray.length + 1 * direction) % 26];
       var new_name = character_names[(position + alphabetArray.length + 1 * direction) % 26];
@@ -361,7 +358,6 @@ Game.prototype.resetSetupLobby = function() {
 
   this.lobby = [];
 
-  console.log(this.state.player_1_character);
   this.lobby.player_1_character = new PIXI.Text(this.state.player_1_character, {fontFamily: "Bebas Neue", fontSize: 144, fill: 0x3cb0f3, letterSpacing: 6, align: "center"});
   this.lobby.player_1_character.anchor.set(0.5,0.5);
   this.lobby.player_1_character.position.set(this.width * 1/8, this.height * 1/2);
@@ -421,9 +417,6 @@ Game.prototype.resetSetupLobby = function() {
   }
 
   this.backArrow("lobby", "title", function() {
-    console.log("Here's the action");
-    console.log(self.game_code);
-    console.log(self.player);
     self.multiplayer.leaveGame(self.game_code, self.player)
     self.resetTitle();
   });

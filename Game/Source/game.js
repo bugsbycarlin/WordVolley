@@ -113,7 +113,7 @@ class Game {
 
       self.lobby.game_code.text = "GAME CODE " + self.game_code;
 
-      self.multiplayer.setWatches();
+      self.multiplayer.setWatch();
 
       self.animateSceneSwitch("setup_create", "lobby");
     }, 2)
@@ -129,7 +129,7 @@ class Game {
     this.multiplayer.joinGame(game_code, function() {
       self.resetSetupLobby();
 
-      self.multiplayer.setWatches();
+      self.multiplayer.setWatch();
 
       self.animateSceneSwitch("setup_join", "lobby");
     }, function() {
@@ -141,7 +141,6 @@ class Game {
 
 
   animateSceneSwitch(old_scene, new_scene) {
-    // var old_scene = this.current_scene
     var direction = -1;
     if (new_scene == "title" || old_scene == "gameplay") direction = 1;
     this.scenes[new_scene].position.x = direction * -1 * this.width;
@@ -282,309 +281,11 @@ class Game {
     this.game_code = "";
     this.start_time = Date.now();
     this.game_code_letter_choice = 0;
-    // if (this.game_code_letters != null) {
-    //   for (var i = 0; i < 5; i++) {
-    //     this.game_code_letters[i].text.text = "";
-    //     this.game_code_letters[i].backing.tint = (i == this.game_code_letter_choice ? 0xf1e594 : 0xFFFFFF);
-    //   }
-
-    // }
   }
 
 
   clearScene(scene) {
     while(scene.children[0]) { scene.removeChild(scene.children[0]); }
-  }
-
-
-  volleySetup() {
-    var choice_size = this.state.word_size
-    if (choice_size == 1) {
-      choice_size = Math.floor(Math.random() * 4) + 4;
-    }
-
-    var words = Object.keys(this.common_words[choice_size]);
-    this.state.origin = words[Math.floor(Math.random() * words.length)];
-
-    this.state.target = words[Math.floor(Math.random() * words.length)];
-
-    // this.state.origin = "BEER"
-    // this.state.target = "BEET"
-    var tries = 3;
-    while(this.state.target == this.state.origin && tries > 0) {
-      this.state.target = words[Math.floor(Math.random() * words.length)];
-      tries -= 1;
-    }
-
-    this.state.volley = this.state.origin;
-    this.state.live_word = this.state.origin;
-    this.state.turn = 1 + Math.floor(Math.random() * 2);
-
-    this.multiplayer.update({
-      origin: this.state.origin,
-      target: this.state.target,
-      volley: this.state.volley,
-      live_word: this.state.live_word,
-      turn: this.state.turn,
-      volley_state: "change_to_start",
-    });
-  }
-
-
-  startVolleyScene() {
-
-    this.initializeVolleyScreen();
-    this.animateSceneSwitch("lobby", "volley");
-
-    this.state.volley_state = "start";
-    this.volley_start = Date.now();
-  }
-
-
-  volleyLob(direction) {
-    this.state.volley_state = "lob";
-    if (direction == 1) {
-      this.ball.words[0].position.set(this.width * 1/4, this.height * 4/16);
-      this.ball.words[0].rotation = Math.atan2(-15, 26.4);
-    } else if (direction == -1) {
-      this.ball.words[0].position.set(this.width * 3/4, this.height * 4/16);
-      this.ball.words[0].rotation = Math.atan2(-15, -26.4);
-    }
-    this.volley.info_text.text = "";
-    this.ball.show();
-    this.ball.smasha(direction, 640, 640/7, 800);
-    this.play_button.disable();
-    var self = this;
-    setTimeout(function() {
-      self.volleyStateInteractive();
-    }, 800)
-  }
-
-
-  volleyStateInteractive() {
-    this.state.volley_state = "interactive";
-    this.volley_start = Date.now();
-    this.live_word_letter_choice = 0;
-    this.setLiveWord();
-    this.play_button.disable();
-
-    if (this.player == this.state.turn) {
-      for (var i = 0; i < this.letterPalette.length; i++) {
-        this.letterPalette[i].enable();
-      }
-      this.live_word_letter_choice = 0
-      for (var i = 0; i < this.live_word_letters.length; i++) {
-        this.live_word_letters[i].backing.tint = (i == this.live_word_letter_choice ? 0xf1e594 : 0xFFFFFF);
-      }
-    } else {
-      for (var i = 0; i < this.letterPalette.length; i++) {
-        this.letterPalette[i].disable();
-      }
-      for (var i = 0; i < this.live_word_letters.length; i++) {
-        this.live_word_letters[i].backing.tint = 0xFFFFFF;
-      }
-    }
-  }
-
-
-  volleyMiss() {
-    var self = this;
-
-    this.play_button.disable();
-    this.state.volley_state = "animating_miss";
-    
-    this.ball.words[0].vx = this.ball.last_vx;
-    this.ball.words[0].vy = this.ball.last_vy;
-    this.ball.words[0].rotation = this.ball.last_rotation;
-    this.ball.bottom_bound = this.height * 7/16 + 80;
-    this.ball.flying = true;
-    this.ball.bounce = true;
-
-    this.volley.info_text.text = "";
-
-    self.state.live_word = "";
-    self.setLiveWord();
-
-    setTimeout(function() {
-      self.ball.flying = false;
-      self.ball.bounce = false;
-      self.ball.bottom_bound = self.ball.permanent_bottom_bound;
-      self.ball.clear();
-
-      if (self.player == 1) {
-        // some extra work to do to start the game
-        self.volleySetup();
-
-        game.state.volley_state = "start";
-        game.volley_start = Date.now();
-      }
-    }, 800);
-  }
-
-
-  volleyHit() {
-    var self = this;
-
-    if (this.player == this.state.turn) {
-      if (this.state.live_word != this.state.target) { // regular volley
-          this.state.volley = this.state.volley + "-" + this.state.live_word;
-          this.state.turn = this.state.turn == 1 ? 2 : 1;
-          
-          this.multiplayer.update({
-            volley_state: "lob",
-            volley: this.state.volley,
-            turn: this.state.turn,
-          });
-
-          this.setPriorWords();
-          this.volleyLob((this.state.turn == 1 ? -1 : 1));
-      } else { // winning shot
-        if (this.player == 1) {
-          this.state.player_1_score += 1;
-          this.volley.player_1_score.text = this.state.player_1_score;
-        } else if (this.player == 2) {
-          this.state.player_2_score += 1;
-          this.volley.player_2_score.text = this.state.player_2_score;
-        }
-
-        this.state.volley = this.state.volley + "-" + this.state.live_word;
-        this.state.live_word = "";
-
-        this.state.volley_state = "winning_shot";
-
-        this.multiplayer.update({
-          volley: this.state.volley,
-          live_word: this.state.live_word,
-          player_1_score: this.state.player_1_score,
-          player_2_score: this.state.player_2_score,
-          volley_state: this.state.volley_state,
-        });
-
-        this.volleyWinning((game.state.turn == 1 ? 1 : -1));
-      }
-    }
-  }
-
-
-  volleyWinning(direction) {
-    if (direction == 1) {
-      this.ball.words[0].position.set(this.width * 1/4, this.height * 4/16);
-      this.ball.words[0].rotation = Math.atan2(-15, 26.4);
-    } else if (direction == -1) {
-      this.ball.words[0].position.set(this.width * 3/4, this.height * 4/16);
-      this.ball.words[0].rotation = Math.atan2(-15, -26.4);
-    }
-    this.volley.info_text.text = "";
-    this.ball.show();
-    this.ball.smasha(direction, 1600, 640/7, 600, true);
-    this.ball.words[0].vy *= 0;
-    this.ball.bottom_bound = 5000;
-    this.play_button.disable();
-
-    this.state.live_word = "";
-    this.setLiveWord();
-
-    setTimeout(function() {
-      self.ball.flying = false;
-      self.ball.bounce = false;
-      self.ball.bottom_bound = self.ball.permanent_bottom_bound;
-      self.ball.clear();
-
-      if (self.player == 1) {
-        // some extra work to do to start the game
-        self.volleySetup();
-
-        game.state.volley_state = "start";
-        game.volley_start = Date.now();
-      }
-    }, 800);
-  }
-
-
-  setLiveWord() {
-    if (this.state.volley_state == "interactive" && this.live_word_letters != null) {
-      for (var i = 0; i < this.live_word_letters.length; i++) {
-        this.live_word_letters[i].text.text = this.state.live_word[i];
-        this.live_word_letters[i].backing.tint = (i == this.live_word_letter_choice ? 0xf1e594 : 0xFFFFFF);
-      }
-      this.liveWordContainer.visible = true;
-    } else {
-      for (var i = 0; i < this.live_word_letters.length; i++) {
-        this.live_word_letters[i].text.text = this.state.live_word[i];
-        this.live_word_letters[i].backing.tint = 0xFFFFFF;
-      }
-      this.liveWordContainer.visible = false;
-    }
-  }
-
-
-  setPriorWords() {
-    this.priorWords = this.state.volley.split("-");
-  }
-
-
-  checkRedUnderline() {
-    return !(this.state.live_word in this.legal_words[this.state.origin.length]);
-  }
-
-
-  checkBlueUnderline() {
-    return (this.state.live_word != this.ball.words[0].text.text
-      && this.priorWords.includes(this.state.live_word));
-  }
-
-
-  update() {
-
-    if (this.current_scene == "volley") {
-      this.ball.update();
-    }
-
-    var repeats = Math.floor(4/1000.0 * (Date.now() - this.start_time)) % 3;
-    if (this.current_scene == "lobby" && this.player == 1 && this.state.player_2_present == false) {
-      this.lobby.info_text.text = "WAITING FOR PLAYER 2" + ".".repeat(repeats + 1);
-    }
-
-    if (this.current_scene == "volley" && this.state.volley_state == "start") {
-      var time_remaining = 3 - (Date.now() - this.volley_start) / 1000;
-      if (time_remaining < 0) time_remaining = 0;
-      this.volley.info_text.text = "READY? " + Math.floor(time_remaining);
-
-      if (time_remaining <= 0) {
-        game.volleyLob((this.state.turn == 1 ? -1 : 1));
-      }
-    }
-
-    if (this.current_scene == "volley" && this.state.volley_state == "interactive") {
-      var time_remaining = this.state.time_limit - (Date.now() - this.volley_start)/1000;
-      if (time_remaining < 0) time_remaining = 0;
-      
-      var minutes = Math.floor(time_remaining / 60);
-      var seconds = Math.floor(time_remaining - 60*minutes);
-      this.volley.info_text.text = minutes + ":" + seconds.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false});
-    
-      if (time_remaining <= 0) {
-
-        if (this.player == this.state.turn) {
-          game.volleyMiss();
-
-          if (this.player == 1) {
-            this.state.player_2_score += 1;
-            this.volley.player_2_score.text = this.state.player_2_score;
-          } else if (this.player == 2) {
-            this.state.player_1_score += 1;
-            this.volley.player_1_score.text = this.state.player_1_score;
-          }
-          this.multiplayer.update({
-            player_1_score: this.state.player_1_score,
-            player_2_score: this.state.player_2_score,
-            volley_state: this.state.volley_state,
-          })
-        }
-      }
-    }
-
-    this.render();
   }
 
 
