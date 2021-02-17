@@ -37,6 +37,7 @@ class Game {
     window.addEventListener("unload", function(ev) {
       if (self.game_code != "" && self.player > 0) {
         self.multiplayer.leaveGame(self.game_code, self.player)
+        self.resetTitle();
       }
     })
   }
@@ -49,6 +50,8 @@ class Game {
     this.scenes["setup_create"].position.x = this.width;
     this.scenes["setup_join"] = new PIXI.Container();
     this.scenes["setup_join"].position.x = this.width;
+    this.scenes["setup_watch"] = new PIXI.Container();
+    this.scenes["setup_watch"].position.x = this.width;
     this.scenes["lobby"] = new PIXI.Container();
     this.scenes["lobby"].position.x = this.width;
     this.scenes["volley"] = new PIXI.Container();
@@ -56,15 +59,24 @@ class Game {
     pixi.stage.addChild(this.scenes["title"]);
     pixi.stage.addChild(this.scenes["setup_create"]);
     pixi.stage.addChild(this.scenes["setup_join"]);
+    pixi.stage.addChild(this.scenes["setup_watch"]);
     pixi.stage.addChild(this.scenes["lobby"]);
     pixi.stage.addChild(this.scenes["volley"]);
 
 
+    this.alertMask = new PIXI.Container();
+    pixi.stage.addChild(this.alertMask);
     this.alertBox = new PIXI.Container();
     pixi.stage.addChild(this.alertBox);
 
+    this.conclusionMask = new PIXI.Container();
+    pixi.stage.addChild(this.conclusionMask);
+    this.conclusionBox = new PIXI.Container();
+    pixi.stage.addChild(this.conclusionBox);
+
     this.initializeTitleScreen();
     this.initializeAlertBox();
+    this.initializeConclusionBox();
   }
 
 
@@ -89,11 +101,11 @@ class Game {
       word_list = word_list.split(/\n/);
       for (var i = 0; i < word_list.length; i++) {
         var thing = word_list[i].split(",");
-        var marking = thing[0];
-        var word = thing[1];
+        var word = thing[0];
+        var common = thing[1];
         if (word != null && word.length >= 4 && word.length <= 7) {
           self.legal_words[word.length][word.toUpperCase()] = 1;
-          if (marking == 1) {
+          if (common == 1) {
             self.common_words[word.length][word.toUpperCase()] = 1;
           }
         }
@@ -103,12 +115,30 @@ class Game {
   }
 
 
+  quickPlayGame() {
+    var self = this;
+    this.multiplayer.quickPlayGame(2, function() {
+      self.resetSetupLobby();
+
+      self.lobby.game_code.text = "GAME CODE " + self.game_code;
+
+      self.multiplayer.setWatch();
+
+      self.animateSceneSwitch("title", "lobby");
+    }, function() {
+      self.showAlert("Sorry, Quick Play isn't\nworking right now :-(", function() {
+
+      })
+    });
+  }
+
+
   createGame() {
     this.player = 1;
 
     var self = this;
 
-    this.multiplayer.createNewGame(function() {
+    this.multiplayer.createNewGame(self.choices["GAME TYPE"] == "COMPETITIVE" ? "code_comp" : "code_coop", 2, function() {
       self.resetSetupLobby();
 
       self.lobby.game_code.text = "GAME CODE " + self.game_code;
@@ -116,7 +146,7 @@ class Game {
       self.multiplayer.setWatch();
 
       self.animateSceneSwitch("setup_create", "lobby");
-    }, 2)
+    })
 
   }
 
@@ -131,9 +161,40 @@ class Game {
 
       self.multiplayer.setWatch();
 
+      self.lobby.game_code.text = "GAME CODE " + self.game_code;
+
       self.animateSceneSwitch("setup_join", "lobby");
     }, function() {
-      self.showAlert("Sorry, can't find\nthat game :-(", function() {
+      self.showAlert("Sorry, I can't find a\ngame with that code :-(", function() {
+
+      })
+    });
+  }
+
+
+  watchGame(game_code) {
+    this.player = 7;
+
+    var self = this;
+
+    this.multiplayer.watchGame(game_code, function() {
+      self.resetSetupLobby();
+
+      self.lobby_ready_button.visible = false;
+
+      self.multiplayer.setWatch();
+
+      self.lobby.game_code.text = "GAME CODE " + self.game_code;
+
+      if (self.state.volley_state != "none") {
+        self.initializeVolleyScreen();
+        self.setPriorWords();
+        self.animateSceneSwitch("setup_watch", "volley");
+      } else {
+        self.animateSceneSwitch("setup_watch", "lobby");
+      }
+    }, function() {
+      self.showAlert("Sorry, I can't find a\ngame with that code :-(", function() {
 
       })
     });
@@ -141,6 +202,7 @@ class Game {
 
 
   animateSceneSwitch(old_scene, new_scene) {
+    console.log("switching from " + old_scene + " to " + new_scene);
     var direction = -1;
     if (new_scene == "title" || old_scene == "gameplay") direction = 1;
     this.scenes[new_scene].position.x = direction * -1 * this.width;
@@ -169,12 +231,50 @@ class Game {
   showAlert(text, action) {
     var self = this;
     this.alertBox.alertText.text = text;
-    this.alertBox.button.on("click", function() {
+    this.alertBox.on("click", function() {
       action();
       self.alertBox.visible = false
+      self.alertMask.visible = false
     });
     this.alertBox.visible = true;
+    this.alertMask.visible = true;
     new TWEEN.Tween(this.alertBox)
+      .to({rotation: Math.PI / 60.0})
+      .duration(70)
+      .yoyo(true)
+      .repeat(3)
+      .start()
+  }
+
+
+  showConclusion(text, character, action) {
+    var self = this;
+
+    this.conclusionBox.conclusionText.text = text;
+    if (this.conclusionBox.conclusionCharacter.length != 0) {
+      this.conclusionBox.removeChild(this.conclusionBox.conclusionCharacter[0]);
+      this.conclusionBox.removeChild(this.conclusionBox.conclusionCharacter[1]);
+      this.conclusionBox.removeChild(this.conclusionBox.conclusionCharacter[2]);
+    }
+    // TO DO USE CHARACTERS HERE
+    // TO DO WATCHER DOESN'T NEED A READY BUTTON
+    // TO DO SHOW RULES IN THE MIDDLE
+    this.conclusionBox.conclusionCharacter = [];
+    for (var i = 0; i < 3; i++) {
+      this.conclusionBox.conclusionCharacter[i] = new PIXI.Sprite(PIXI.Texture.from("Art/title_left.png"));
+      this.conclusionBox.conclusionCharacter[i].position.set(-200 + 200 * i, 80);
+      this.conclusionBox.conclusionCharacter[i].anchor.set(0.5, 0.5);
+      this.conclusionBox.addChild(this.conclusionBox.conclusionCharacter[i]);
+    }
+
+    this.conclusionBox.on("click", function() {
+      action();
+      self.conclusionBox.visible = false
+      self.conclusionMask.visible = false
+    });
+    this.conclusionBox.visible = true;
+    this.conclusionMask.visible = true;
+    new TWEEN.Tween(this.conclusionBox)
       .to({rotation: Math.PI / 60.0})
       .duration(70)
       .yoyo(true)
@@ -275,12 +375,86 @@ class Game {
   }
 
 
+  makeOptionChooser(parent, x, y, options, option_name, button_to_enable) {
+    var self = this;
+    this.choosers[option_name] = {};
+    this.choices[option_name] = -1;
+    this.choice_strings[option_name] = options;
+
+    var option_text = new PIXI.Text(option_name, {fontFamily: "Bebas Neue", fontSize: 48, fill: 0x000000, letterSpacing: 6, align: "center"});
+    option_text.anchor.set(0.5,0.5);
+    option_text.position.set(x, y);
+    parent.addChild(option_text);
+    
+    var option_marker = new PIXI.Sprite(PIXI.Texture.from("Art/blue_check.png"));
+    option_marker.anchor.set(0.5, 0.5);
+    option_marker.position.set(x - 160, y);
+    option_marker.visible = false;
+    parent.addChild(option_marker);
+
+    // var x_positions = [];
+    // if (options.length == 2) {
+    //   x_positions = [self.width * 2/5, self.width * 3/5];
+    // } else {
+    //   for (var i = 0; i < options.length; i++) {
+    //     x_positions.push(self.width * (i+1)/(options.length + 1));
+    //   }
+    // }
+    var left_most_x = x;
+    for (var i = 0; i < options.length; i++) {
+      let choice_num = i;
+      if (x - 10 * (1 + options[i].length) - 20 < left_most_x) {
+        left_most_x = x - 10 * (1 + options[i].length) - 20;
+      }
+      this.makeButton(
+        parent,
+        x, y + (i+1) * 64,
+        options[i], 36, 6, 0x3cb0f3,
+        20 * (1 + options[i].length), 60, 0xFFFFFF,
+        function() {
+          self.choices[option_name] = options[choice_num];
+          self.resetOptionsText();
+          if (option_marker.visible == false) {
+            option_marker.visible = true;
+            option_marker.position.y = y + (choice_num+1) * 64;
+            option_marker.position.x = left_most_x;
+          } else {
+            var tween = new TWEEN.Tween(option_marker.position)
+              .to({y: y + (choice_num+1) * 64})
+              .duration(200)
+              .easing(TWEEN.Easing.Cubic.Out)
+              .start();
+          }
+          for (const [key,value] of Object.entries(self.choices)) {
+            let enable = true;
+            if (value == -1) {
+              enable = false;
+            }
+            if (enable) {
+              button_to_enable.enable();
+            } else {
+              button_to_enable.disable();
+            }
+          }
+        }
+      );
+    }
+  }
+
+
   resetTitle() {
     this.player = 0;
     this.state  = {};
+    this.choosers = {};
+    this.choices = {
+      "GAME_TYPE": -1,
+      "DIFFICULTY": -1,
+    };
+    this.choice_strings = {};
     this.game_code = "";
     this.start_time = Date.now();
     this.game_code_letter_choice = 0;
+    this.multiplayer.stopWatch();
   }
 
 

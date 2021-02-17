@@ -207,7 +207,7 @@ class Ball {
           this.fireSprite.y = hp[1];
           this.fireSprite.rotation = hp[2] + Math.PI/2 * (this.words[0].vx > 0 ? -1 : 1);
           this.fireSprite.visible = true;
-        } else {
+        } else if(this.fireSprite != null) {
           this.fireSprite.visible = false;
         }
 

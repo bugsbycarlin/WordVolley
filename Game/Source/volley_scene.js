@@ -1,76 +1,5 @@
 
 
-Game.prototype.initializeTestScreen = function() {
-  var self = this;
-
-  var excellent_rectangle = PIXI.Sprite.from(PIXI.Texture.WHITE);
-  excellent_rectangle.width = 300;
-  excellent_rectangle.height = 100;
-  excellent_rectangle.anchor.set(0.5, 0.5);
-  excellent_rectangle.tint = 0xf1e594;
-  excellent_rectangle.position.set(this.width * 4/8, this.height * 1/2 - 8);
-  this.scenes["test"].addChild(excellent_rectangle);
-
-  var title_left = new PIXI.Sprite(PIXI.Texture.from("Art/title_left.png"));
-  title_left.position.set(this.width * 1/8, this.height * 1/2);
-  title_left.anchor.set(0.5, 0.5);
-  this.scenes["test"].addChild(title_left);
-
-  var title_right = new PIXI.Sprite(PIXI.Texture.from("Art/title_right.png"));
-  title_right.position.set(this.width * 7/8, this.height * 1/2);
-  title_right.anchor.set(0.5, 0.5);
-  this.scenes["test"].addChild(title_right);
-
-  var title_text = new PIXI.Text("", {fontFamily: "Bebas Neue", fontSize: 96, fill: 0x000000, letterSpacing: 25, align: "center"});
-  title_text.position.set(this.width * 1/2, this.height * 1/2);
-  title_text.anchor.set(0.5,0.5);
-  this.scenes["test"].addChild(title_text);
-
-  this.makeLetterPalette(this.scenes["test"], this.width * 9/16, this.height * 13/16, function(letter) {
-    
-  });
-
-  this.test_ball = new Ball(
-    this.scenes["test"], 5,
-    this.width * 1/4, this.height * 1/3,
-    this.width * 1/4, this.width * 3/4, this.height * 1/3 // left, right, bottom
-  );
-
-  this.test_ball.addWord("start", 1);
-  this.test_ball.words[0].rotation = Math.atan2(-15, 26.4);
-  title_text.text = this.test_ball.words[0].text;
-
-  more_words = ["stars", "stabs", "slabs", "slaps", "slips", "flips", "blips", "clips", "chips", "chaps", "craps"]
-
-  console.log(this.test_ball.words[0].width);
-
-  var current_direction = 1;
-
-  document.addEventListener("keyup", function(ev) {
-    ev.preventDefault();
-    console.log("I read you");
-    if (ev.key == "v") {
-      console.log("a volley");
-      self.test_ball.addWord(more_words.shift(), 0);
-      self.test_ball.smasha(current_direction, 640, 640/7, 800);
-      current_direction *= -1;
-      title_text.text = self.test_ball.words[0].text;
-    }
-
-    if (ev.key == "s") {
-      console.log("a smaaash");
-      self.test_ball.addWord(more_words.shift(), 0);
-      self.test_ball.smasha(current_direction, 1600, 640/7, 600, true);
-      self.test_ball.words[0].vy *= 0;
-      self.test_ball.bottom_bound = 5000;
-      current_direction *= -1;
-      title_text.text = self.test_ball.words[0].text;
-    }
-  }, false);
-
-  // this.test_ball.smasha(1);
-}
-
 Game.prototype.initializeVolleyScreen = function() {
   var self = this;
 
@@ -78,22 +7,22 @@ Game.prototype.initializeVolleyScreen = function() {
 
   this.volley = [];
 
-  this.volley.statement = new PIXI.Text(this.state.origin + "        " + this.state.target, {fontFamily: "Bebas Neue", fontSize: 56, fill: 0x000000, letterSpacing: 6, align: "center"});
-  this.volley.statement.anchor.set(0.5,0.5);
-  this.volley.statement.position.set(this.width * 1/2, this.height * 1/16);
-  this.scenes["volley"].addChild(this.volley.statement);
+  // this.volley.statement = new PIXI.Text(this.state.origin + "        " + this.state.target, {fontFamily: "Bebas Neue", fontSize: 56, fill: 0x000000, letterSpacing: 6, align: "center"});
+  // this.volley.statement.anchor.set(0.5,0.5);
+  // this.volley.statement.position.set(this.width * 1/2, this.height * 1/16);
+  // this.scenes["volley"].addChild(this.volley.statement);
 
-  this.volleyArrow = new PIXI.Sprite(PIXI.Texture.from("Art/origin_to_target.png"));
-  this.volleyArrow.position.set(this.width * 1/2, this.height * 1/16 - 10);
-  this.volleyArrow.anchor.set(0.5, 0.5);
-  this.scenes["volley"].addChild(this.volleyArrow);
+  // this.volleyArrow = new PIXI.Sprite(PIXI.Texture.from("Art/origin_to_target.png"));
+  // this.volleyArrow.position.set(this.width * 1/2, this.height * 1/16 - 10);
+  // this.volleyArrow.anchor.set(0.5, 0.5);
+  // this.scenes["volley"].addChild(this.volleyArrow);
 
-  this.volley.info_text = new PIXI.Text("READY? 3", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0x000000, letterSpacing: 6, align: "center"});
+  this.volley.info_text = new PIXI.Text("READY? 3", {fontFamily: "Bebas Neue", fontSize: 48, fill: 0x000000, letterSpacing: 6, align: "center"});
   this.volley.info_text.anchor.set(0.5,0.5);
-  this.volley.info_text.position.set(this.width * 1/2, this.height * 3/16);
+  this.volley.info_text.position.set(this.width * 1/2, this.height * 2/16);
   this.scenes["volley"].addChild(this.volley.info_text);
 
-  this.volley.player_1_character = new PIXI.Text(this.state.player_1_character, {fontFamily: "Bebas Neue", fontSize: 144, fill: 0x3cb0f3, letterSpacing: 6, align: "center"});
+  this.volley.player_1_character = new PIXI.Text(this.state.player_1_name.substring(0,1), {fontFamily: "Bebas Neue", fontSize: 144, fill: 0x3cb0f3, letterSpacing: 6, align: "center"});
   this.volley.player_1_character.anchor.set(0.5,0.5);
   this.volley.player_1_character.position.set(this.width * 1/8, this.height * 7/16);
   this.scenes["volley"].addChild(this.volley.player_1_character);
@@ -108,7 +37,7 @@ Game.prototype.initializeVolleyScreen = function() {
   this.volley.player_1_score.position.set(this.width * 1/8, this.height * 7/16 + 130);
   this.scenes["volley"].addChild(this.volley.player_1_score);
 
-  this.volley.player_2_character = new PIXI.Text(this.state.player_2_character, {fontFamily: "Bebas Neue", fontSize: 144, fill: 0xf3db3c, letterSpacing: 6, align: "center"});
+  this.volley.player_2_character = new PIXI.Text(this.state.player_2_name.substring(0,1), {fontFamily: "Bebas Neue", fontSize: 144, fill: 0xf3db3c, letterSpacing: 6, align: "center"});
   this.volley.player_2_character.anchor.set(0.5,0.5);
   this.volley.player_2_character.position.set(this.width * 7/8, this.height * 7/16);
   this.scenes["volley"].addChild(this.volley.player_2_character);
@@ -123,6 +52,20 @@ Game.prototype.initializeVolleyScreen = function() {
   this.volley.player_2_score.position.set(this.width * 7/8, this.height * 7/16 + 130);
   this.scenes["volley"].addChild(this.volley.player_2_score);
 
+  this.volley.coop_score = new PIXI.Text("", {fontFamily: "Bebas Neue", fontSize: 48, fill: 0x000000, letterSpacing: 6, align: "center"});
+  this.volley.coop_score.anchor.set(0.5,0.5);
+  this.volley.coop_score.position.set(this.width * 1/2, this.height * 7/32);
+  this.scenes["volley"].addChild(this.volley.coop_score);
+
+  if (this.state.game_type == "code_coop") {
+    this.volley.coop_score.visible = true;
+    this.volley.player_1_score.visible = false;
+    this.volley.player_2_score.visible = false;
+  } else {
+    this.volley.coop_score.visible = false;
+    this.volley.player_1_score.visible = true;
+    this.volley.player_2_score.visible = true;
+  }
 
   this.volley.hint_text = new PIXI.Text("", {fontFamily: "Bebas Neue", fontSize: 36, fill: 0xDDDDDD, letterSpacing: 6, align: "center"});
   this.volley.hint_text.anchor.set(0.5,0.5);
@@ -164,6 +107,8 @@ Game.prototype.initializeVolleyScreen = function() {
         new_live_word += self.live_word_letters[i].text.text;
       }
       self.state.live_word = new_live_word;
+
+      console.log(new_live_word);
 
       // self.multiplayer.update({
       //   live_word: new_live_word
@@ -261,4 +206,60 @@ Game.prototype.remakeLiveWordContainer = function() {
   this.blue_underline.anchor.set(0.5, 0.5);
   this.scenes["volley"].addChild(this.blue_underline);
   this.blue_underline.visible = false;
+}
+
+Game.prototype.initializeConclusionBox = function() {
+  this.conclusionBox.position.set(this.width / 2, this.height / 2);
+  this.conclusionBox.visible = false;
+
+  this.conclusionMask.position.set(this.width / 2, this.height / 2);
+  this.conclusionMask.visible = false;
+  this.conclusionMask.interactive = true;
+  this.conclusionMask.buttonMode = true;
+  this.conclusionMask.on("click", function() {
+  });
+
+  this.conclusionBox.conclusionCharacter = [];
+
+  var mask = PIXI.Sprite.from(PIXI.Texture.WHITE);
+  mask.width = this.width;
+  mask.height = this.height;
+  mask.anchor.set(0.5, 0.5);
+  mask.alpha = 0.2;
+  mask.tint = 0x000000;
+  this.conclusionMask.addChild(mask);
+
+  var outline = PIXI.Sprite.from(PIXI.Texture.WHITE);
+  outline.width = this.width * 3/5;
+  outline.height = this.height * 3/5;
+  outline.anchor.set(0.5, 0.5);
+  outline.position.set(-1, -1);
+  outline.tint = 0xDDDDDD;
+  this.conclusionBox.addChild(outline);
+
+  for (var i = 0; i < 4; i++) {
+    var backingGrey = PIXI.Sprite.from(PIXI.Texture.WHITE);
+    backingGrey.width = this.width * 3/5;
+    backingGrey.height = this.height * 3/5;
+    backingGrey.anchor.set(0.5, 0.5);
+    backingGrey.position.set(4 - i, 4 - i);
+    backingGrey.tint = PIXI.utils.rgb2hex([0.8 - 0.1*i, 0.8 - 0.1*i, 0.8 - 0.1*i]);
+    this.conclusionBox.addChild(backingGrey);
+  }
+
+  var backingWhite = PIXI.Sprite.from(PIXI.Texture.WHITE);
+  backingWhite.width = this.width * 3/5;
+  backingWhite.height = this.height * 3/5;
+  backingWhite.anchor.set(0.5, 0.5);
+  backingWhite.position.set(0,0);
+  backingWhite.tint = 0xFFFFFF;
+  this.conclusionBox.addChild(backingWhite);
+
+  this.conclusionBox.conclusionText = new PIXI.Text("EH. OKAY.", {fontFamily: "Bebas Neue", fontSize: 48, fill: 0x000000, letterSpacing: 6, align: "center"});
+  this.conclusionBox.conclusionText.anchor.set(0.5,0.5);
+  this.conclusionBox.conclusionText.position.set(0, -160);
+  this.conclusionBox.addChild(this.conclusionBox.conclusionText);
+
+  this.conclusionBox.interactive = true;
+  this.conclusionBox.buttonMode = true;
 }

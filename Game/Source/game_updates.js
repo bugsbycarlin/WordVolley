@@ -1,21 +1,51 @@
 
+const exhortations = [
+  "Wow!",
+  "Zowie!",
+  "Jeezy Creezy.",
+  "Wowsers!",
+  "Jeepers!",
+  "Dangles!",
+  "Dang!",
+  "Win-go, man!",
+  "Zappa zappa.",
+  "Zam!",
+  "Blam!",
+  "Shazaam!",
+  "Keep going!",
+  "Go go go!",
+  "Wheeeee!",
+  "Yay!",
+];
 
 Game.prototype.updateFromMulti = function(snapshot) {
+  // I don't know why this happens, but I need to cancel it.
+  // if (this.state.volley_state == "interactive" && snapshot.val().volley_state == "start_volley") {
+  //   this.state.live_word = snapshot.val().live_word;
+  //   this.setLiveWord();
+  //   return;
+  // }
+
   var self = this;
   var old_state = this.state;
   var new_state = snapshot.val();
   this.state = new_state;
+  console.log("Barry");
+  console.log(old_state.volley_state);
+  console.log(new_state.volley_state);
 
   // Player 1, notice player 2 joining or leaving the game
-  if (game.player == 1) {
-    if (old_state.player_2_present == false && new_state.player_2_present == true) {
+  if (game.player != 2) {
+    if (old_state.player_2_state != "joined" && new_state.player_2_state == "joined") {
       this.lobby.info_text.anchor.set(0.5,0.5);
-      this.lobby.info_text.position.set(this.width * 1/2, this.height * 1/2);
+      this.lobby.info_text.position.set(this.width * 1/2, this.height * 4/16);
       this.lobby.info_text.text = "PLAYER 2 HAS JOINED. GET READY!";
       this.lobby.player_2_character.visible = true;
       this.lobby.player_2_name.visible = true;
-    } else if (old_state.player_2_present == true && new_state.player_2_present == false) {
-      this.showAlert("Player 2 has\nleft the game!", function() {
+    } else if (old_state.player_2_state != "quit" && new_state.player_2_state == "quit") {
+      this.showAlert("Whoa. The other player\nhas left the game.", function() {
+        // I should also leave, in an attempt to keep the game state coherent for later matching or cleanup
+        self.multiplayer.leaveGame(self.game_code, self.player)
         self.resetTitle();
         self.animateSceneSwitch(self.current_scene, "title");
       })
@@ -23,9 +53,11 @@ Game.prototype.updateFromMulti = function(snapshot) {
   }
 
   // Player 2, notice player 1 leaving the game
-  if (game.player == 2) {
-    if (old_state.player_1_present == true && new_state.player_1_present == false) {
-      this.showAlert("Player 1 has\nleft the game!", function() {
+  if (game.player != 1) {
+    if (old_state.player_1_state != "quit" && new_state.player_1_state == "quit") {
+      this.showAlert("Whoa. The other player\nhas left the game.", function() {
+        // I should also leave, in an attempt to keep the game state coherent for later matching or cleanup
+        self.multiplayer.leaveGame(self.game_code, self.player)
         self.resetTitle();
         self.animateSceneSwitch(self.current_scene, "title");
       })
@@ -33,20 +65,32 @@ Game.prototype.updateFromMulti = function(snapshot) {
   }
 
   // Update player's character, name, and score
-  if (old_state.player_1_character != new_state.player_1_character) {
-    this.lobby.player_1_character.text = new_state.player_1_character;
-  }
-  if (old_state.player_2_character != new_state.player_2_character) {
-    this.lobby.player_2_character.text = new_state.player_2_character;
-  }
   if (old_state.player_1_name != new_state.player_1_name) {
     this.lobby.player_1_name.text = new_state.player_1_name;
+    this.lobby.player_1_character.text = new_state.player_1_name.substring(0,1);
   }
   if (old_state.player_2_name != new_state.player_2_name) {
     this.lobby.player_2_name.text = new_state.player_2_name;
+    this.lobby.player_2_character.text = new_state.player_2_name.substring(0,1);
   }
   if (old_state.player_1_score != new_state.player_1_score) {
-    if (this.volley != null) this.volley.player_1_score.text = new_state.player_1_score;
+    if (this.volley != null) {
+      this.volley.player_1_score.text = new_state.player_1_score;
+      if (this.state.game_type == "code_coop") {
+        console.log("score changed");
+        if (new_state.player_1_score == 0) {
+           console.log("score 0");
+          this.volley.coop_score.text = "";
+        } else if (new_state.player_1_score == 1){
+           console.log("score 1");
+          this.volley.coop_score.text = "1 Volley";
+        } else {
+          console.log("score 2+");
+          this.volley.coop_score.text = new_state.player_1_score + " Volleys." 
+            + ((Math.floor(Math.random() * 100 > 85)) ? (" " +exhortations[Math.floor(Math.random() * exhortations.length)]) : "");
+        }
+      }
+    }
   }
   if (old_state.player_2_score != new_state.player_2_score) {
     if (this.volley != null) this.volley.player_2_score.text = new_state.player_2_score;
@@ -60,7 +104,7 @@ Game.prototype.updateFromMulti = function(snapshot) {
   // If the origin or target change, show the new ones, and remake the live word container
   if (old_state.origin != new_state.origin || old_state.target != new_state.target) {
     if (this.current_scene == "volley") {
-      this.volley.statement.text = new_state.origin + "        " + new_state.target;
+      // this.volley.statement.text = new_state.origin + "        " + new_state.target;
       this.remakeLiveWordContainer();
       this.setLiveWord();
       this.setPriorWords();
@@ -68,9 +112,10 @@ Game.prototype.updateFromMulti = function(snapshot) {
   }
 
   // Start the proper game if both players register as ready
-  if (old_state.player_1_ready != new_state.player_1_ready || old_state.player_2_ready != new_state.player_2_ready) {
-    if (new_state.player_1_ready && new_state.player_2_ready) {
+  if (old_state.player_1_state != new_state.player_1_state || old_state.player_2_state != new_state.player_2_state) {
+    if (new_state.player_1_state == "ready" && new_state.player_2_state == "ready") {
       if (this.current_scene == "lobby" && this.player == 1) {
+        console.log("From here I start the volley")
         this.setupVolley("start_volley");
       }
     }
@@ -78,6 +123,7 @@ Game.prototype.updateFromMulti = function(snapshot) {
 
   // If we receive the start_volley state, make the actual transition to the volley scene and start us up.
   if (old_state.volley_state != new_state.volley_state && new_state.volley_state == "start_volley") {
+    console.log("starting volley");
     this.initializeVolleyScreen();
     this.animateSceneSwitch("lobby", "volley");
     this.setPriorWords();
@@ -87,6 +133,7 @@ Game.prototype.updateFromMulti = function(snapshot) {
 
   // If we receive the reset_volley state, go back to the countdown
   if (old_state.volley_state != new_state.volley_state && new_state.volley_state == "reset_volley") {
+    console.log("resetting volley");
     this.volleyStateCountdown();
   }
 
@@ -114,6 +161,7 @@ Game.prototype.updateFromMulti = function(snapshot) {
   // If we receive change_to_lob, we are now the turn player and should prepare for the lob!
   if (old_state.volley_state != new_state.volley_state && new_state.volley_state == "change_to_lob") {
     if (old_state.volley_state != "lob") {
+      console.log("changing to lob");
       var words = new_state.volley.split("-");
       var last_word = words[words.length - 1];
       this.ball.addWord(last_word);
@@ -122,27 +170,49 @@ Game.prototype.updateFromMulti = function(snapshot) {
     }
   }
 
+  // If we receive changeywee, we are now ready to stop the game as well
+  if (old_state.volley_state != new_state.volley_state && new_state.volley_state == "changeywee") {
+    if (old_state.volley_state != "ended") {
+      console.log("I got a signal from the other guy to finish coop");
+      this.finishCoop(false);
+    }
+  }
+
 
 }
 
 
 Game.prototype.update = function() {
+  if (this.state.length != 0 && (
+    this.state.player_1_state == "quit" || this.state.player_2_state == "quit" ||
+    this.state.player_1_state == "ended" || this.state.player_2_state == "ended" || this.state.volley_state == "ended")) {
+    return;
+  }
+
   if (this.current_scene == "volley") {
     this.ball.update();
   }
 
   var dots = Math.floor(4/1000.0 * (Date.now() - this.start_time)) % 3;
-  if (this.current_scene == "lobby" && this.player == 1 && this.state.player_2_present == false) {
+  if (this.current_scene == "lobby" && this.player != 2 && this.state.player_2_state == "empty") {
     this.lobby.info_text.text = "WAITING FOR PLAYER 2" + ".".repeat(dots + 1);
   }
 
   if (this.current_scene == "volley" && this.state.volley_state == "countdown") {
-    var time_remaining = 3 - (Date.now() - this.volley_start) / 1000;
+    var time_remaining = 5 - (Date.now() - this.volley_start) / 1000;
     if (time_remaining < 0) time_remaining = 0;
-    this.volley.info_text.text = "READY? " + Math.floor(time_remaining);
-
-    if (time_remaining <= 0) {
-      this.volleyStateLob(true);
+    
+    if (this.state.game_type == "code_coop") {
+      this.volley.info_text.text = "READY? " + Math.floor(time_remaining);
+      if (time_remaining <= 0) {
+        this.volley_start = Date.now();
+        this.volleyStateLob(true);
+      }
+    } else {
+      this.volley.info_text.text = "THE SECRET WORD IS " + this.state.target + ". READY? " + Math.floor(time_remaining);
+      if (time_remaining <= 0) {
+        this.volleyStateLob(true);
+      }
     }
   }
 
@@ -154,17 +224,99 @@ Game.prototype.update = function() {
     var seconds = Math.floor(time_remaining - 60*minutes);
     this.volley.info_text.text = minutes + ":" + seconds.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false});
   
-    if (time_remaining <= 0 && this.player == this.state.turn) {
+    if (this.state.game_type != "code_coop" && time_remaining <= 0 && this.player == this.state.turn) {
       this.volleyStateMiss();
     }
+
+    if (this.state.game_type == "code_coop" && this.state.volley_state != "ended" && time_remaining <= 0 && this.player == this.state.turn) {
+      this.finishCoop(true);
+    }
+  }
+
+  if (this.state.game_type == "code_coop" && this.current_scene == "volley" && 
+    (this.state.volley_state == "interactive" || this.state.volley_state == "lob" || this.state.volley_state == "miss")) {
+    var time_remaining = this.state.time_limit - (Date.now() - this.volley_start)/1000;
+    if (time_remaining < 0) time_remaining = 0;
+    
+    var minutes = Math.floor(time_remaining / 60);
+    var seconds = Math.floor(time_remaining - 60*minutes);
+    this.volley.info_text.text = minutes + ":" + seconds.toLocaleString('en-US', {minimumIntegerDigits: 2, useGrouping:false});
   }
 }
 
 
+Game.prototype.checkVictory = function() {
+  var self = this;
+
+  var show = false;
+  var text = "";
+  var character = "";
+
+       
+  if (this.state.player_1_score >= 6 && this.state.player_1_score - this.state.player_2_score >= 2) {
+    this.state.volley_state = "ended";
+    show = true;
+    character = this.state.player_1_name.substring(0,1);
+
+    if (this.state.player == 1) {
+      this.multiplayer.finishGame(this.game_code, this.player, this.player)
+      text = "You win, " + this.state.player_1_name + "!";
+    } else if (this.state.player == 2) {
+      text = this.state.player_1_name + " wins! You lose.";
+    } else {
+      text = this.state.player_1_name + " wins!";
+    }
+  } else if (this.state.player_2_score >= 6 && this.state.player_2_score - this.state.player_1_score >= 2) {
+    this.state.volley_state = "ended";
+    show = true;
+    character = this.state.player_2_name.substring(0,1);
+
+    if (this.state.player == 2) {
+      this.multiplayer.finishGame(this.game_code, this.player, this.player)
+      text = "You win, " + this.state.player_2_name + "!";
+    } else if (this.state.player == 1) {
+      text = this.state.player_2_name + " wins! You lose.";
+    } else {
+      text = this.state.player_2_name + " wins!";
+    }
+  }
+
+  if (show) {
+    self.showConclusion(text, character, function() {
+      self.resetTitle();
+      self.animateSceneSwitch(self.current_scene, "title");
+    })
+  }
+}
+
+
+Game.prototype.finishCoop = function(update_others) {
+  var self = this;
+  var text = "Time's up! You got " + this.state.player_1_score + " volleys!";
+  var character = "A"; // meh?
+
+  this.state.volley_state = "ended";
+
+
+  if (update_others == true) {
+    console.log("Updating others about finish game");
+    this.multiplayer.finishGame(this.game_code, this.player, this.player);
+  }
+
+  this.showConclusion(text, character, function() {
+    self.resetTitle();
+    self.animateSceneSwitch(self.current_scene, "title");
+  });
+}
+
+
 Game.prototype.setupVolley = function(new_volley_state) {
+  if (this.state.volley_state == "ended") {
+    return;
+  }
   var choice_size = this.state.word_size
   if (choice_size == 1) {
-    choice_size = Math.floor(Math.random() * 4) + 4;
+    choice_size = Math.floor(Math.random() * 3) + 4;
   }
 
   var words = Object.keys(this.common_words[choice_size]);
@@ -182,6 +334,7 @@ Game.prototype.setupVolley = function(new_volley_state) {
     turn = this.state.turn == 1 ? 2 : 1;
   }
 
+  console.log("From here i update the state when i setup volley in setupvolley")
   this.multiplayer.update({
     origin: origin,
     target: target,
@@ -214,10 +367,12 @@ Game.prototype.volleyStateLob = function(reset=false) {
     this.ball.words[0].rotation = Math.atan2(-15, -26.4);
     this.ball.smasha(-1, 640, 640/7, 800);
   }
-  this.volley.info_text.text = "";
+  if (this.state.game_type != "code_coop") {
+    this.volley.info_text.text = "";
+  }
   this.ball.show();
 
-  this.hideHint();
+  // this.hideHint();
   this.play_button.visible = false;
   this.play_button.disable();
   var self = this;
@@ -230,14 +385,16 @@ Game.prototype.volleyStateLob = function(reset=false) {
 Game.prototype.volleyStateInteractive = function() {
   var self = this;
   this.state.volley_state = "interactive";
-  this.volley_start = Date.now();
+  if (this.state.game_type != "code_coop") {
+    this.volley_start = Date.now();
+  }
   this.live_word_letter_choice = 0;
   this.setLiveWord();
 
-  this.findHint();
-  setTimeout(function() {
-    self.showHint();
-  }, Math.max(30, this.state.time_limit * 1000 - 7000));
+  // this.findHint();
+  // setTimeout(function() {
+  //   self.showHint();
+  // }, Math.max(30, this.state.time_limit * 1000 - 7000));
 
   if (this.player == this.state.turn) {
     for (var i = 0; i < this.letterPalette.length; i++) {
@@ -267,10 +424,12 @@ Game.prototype.volleyStateMiss = function() {
     var player_1_score = this.state.player_1_score;
     var player_2_score = this.state.player_2_score;
 
-    if (this.player == 1) {
-      player_2_score += 1;
-    } else if (this.player == 2) {
-      player_1_score += 1;
+    if (this.state.game_type != "code_coop") {
+      if (this.player == 1) {
+        player_2_score += 1;
+      } else if (this.player == 2) {
+        player_1_score += 1;
+      }
     }
 
     this.multiplayer.update({
@@ -281,10 +440,12 @@ Game.prototype.volleyStateMiss = function() {
     })
   }
 
-  this.hideHint();
+  // this.hideHint();
   this.play_button.visible = false;
 
-  this.volley.info_text.text = "";
+  if (this.state.game_type != "code_coop") {
+    this.volley.info_text.text = "";
+  }
   this.state.live_word = "";
   this.setLiveWord();
   this.red_underline.visible = false;
@@ -303,7 +464,12 @@ Game.prototype.volleyStateMiss = function() {
     self.ball.bottom_bound = self.ball.permanent_bottom_bound;
     self.ball.clear();
 
-    if (self.player == 1) {
+    if (self.state.game_type != "code_coop") {
+      self.checkVictory();
+    }
+
+    if (self.player == 1 && self.state.game_type != "code_coop") {
+      console.log("I shouldn't reach here from miss in a coop game");
       self.setupVolley("reset_volley");
     }
   }, 800);
@@ -322,9 +488,9 @@ Game.prototype.volleyStateWin = function() {
     var player_2_score = this.state.player_2_score;
 
     if (this.player == 1) {
-      player_1_score += 1;
+      player_1_score += 3;
     } else if (this.player == 2) {
-      player_2_score += 1;
+      player_2_score += 3;
     }
 
     this.multiplayer.update({
@@ -336,7 +502,7 @@ Game.prototype.volleyStateWin = function() {
     })
   }
 
-  this.hideHint();
+  // this.hideHint();
   this.play_button.visible = false;
   
   this.volley.info_text.text = "";
@@ -364,6 +530,7 @@ Game.prototype.volleyStateWin = function() {
     self.ball.bottom_bound = self.ball.permanent_bottom_bound;
     self.ball.clear();
 
+    self.checkVictory();
     if (self.player == 1) {
       self.setupVolley("reset_volley");
     }
@@ -375,7 +542,7 @@ Game.prototype.returnVolley = function() {
   var self = this;
 
   if (this.player == this.state.turn) {
-    if (this.state.live_word != this.state.target) { // regular volley
+    if (this.state.game_type == "code_coop" || this.state.live_word != this.state.target) { // regular volley
 
       this.state.volley = this.state.volley + "-" + this.state.live_word;
       this.state.turn = this.state.turn == 1 ? 2 : 1;
@@ -385,11 +552,21 @@ Game.prototype.returnVolley = function() {
       var last_word = words[words.length - 1];
       this.ball.addWord(last_word);
 
+      var player_1_score = this.state.player_1_score;
+      var player_2_score = this.state.player_2_score;
+      if (this.state.game_type == "code_coop") {
+        player_2_score += 1;
+        player_1_score += 1;
+      }
+
       this.setPriorWords();
       this.volleyStateLob();
       this.setLiveWord();
         
+      console.log("It can't be here surely")
       this.multiplayer.update({
+        player_1_score: player_1_score,
+        player_2_score: player_2_score,
         volley_state: "change_to_lob",
         volley: this.state.volley,
         turn: this.state.turn,
@@ -403,7 +580,7 @@ Game.prototype.returnVolley = function() {
 
 
 Game.prototype.setLiveWord = function() {
-  if (this.state.volley_state == "interactive" && this.live_word_letters != null) {
+  if (this.state.volley_state == "interactive" && this.live_word_letters != null && this.player == this.state.turn) {
     for (var i = 0; i < this.live_word_letters.length; i++) {
       this.live_word_letters[i].text.text = this.state.live_word[i];
       this.live_word_letters[i].backing.tint = (i == this.live_word_letter_choice ? 0xf1e594 : 0xFFFFFF);
@@ -430,8 +607,7 @@ Game.prototype.checkRedUnderline = function() {
 
 
 Game.prototype.checkBlueUnderline = function() {
-  return (this.state.live_word != this.ball.words[0].text
-    && this.priorWords.includes(this.state.live_word));
+  return (this.priorWords.includes(this.state.live_word));
 }
 
 
