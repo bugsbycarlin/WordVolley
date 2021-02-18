@@ -30,7 +30,8 @@ Game.prototype.updateFromMulti = function(snapshot) {
   var old_state = this.state;
   var new_state = snapshot.val();
   this.state = new_state;
-  console.log("Barry");
+  var date = new Date();
+  console.log(date.getHours() + ":" + date.getMinutes() + ":" + date.getSeconds() + ": Updating from multiplayer");
   console.log(old_state.volley_state);
   console.log(new_state.volley_state);
 
@@ -178,6 +179,7 @@ Game.prototype.updateFromMulti = function(snapshot) {
     }
   }
 
+  console.log("Final volley state: " + this.state.volley_state);
 
 }
 
@@ -248,65 +250,70 @@ Game.prototype.update = function() {
 Game.prototype.checkVictory = function() {
   var self = this;
 
-  var show = false;
-  var text = "";
-  var character = "";
+  // var show = false;
+  // var text = "";
+  // var character = "";
 
        
+  // if (this.state.player_1_score >= 6 && this.state.player_1_score - this.state.player_2_score >= 2) {
+  //   this.state.volley_state = "ended";
+  //   show = true;
+  //   character = this.state.player_1_name.substring(0,1);
+
+  //   if (this.state.player == 1) {
+  //     this.multiplayer.finishGame(this.game_code, this.player, this.player)
+  //     text = "You win, " + this.state.player_1_name + "!";
+  //   } else if (this.state.player == 2) {
+  //     text = this.state.player_1_name + " wins! You lose.";
+  //   } else {
+  //     text = this.state.player_1_name + " wins!";
+  //   }
+  // } else if (this.state.player_2_score >= 6 && this.state.player_2_score - this.state.player_1_score >= 2) {
+  //   this.state.volley_state = "ended";
+  //   show = true;
+  //   character = this.state.player_2_name.substring(0,1);
+
+  //   if (this.state.player == 2) {
+  //     this.multiplayer.finishGame(this.game_code, this.player, this.player)
+  //     text = "You win, " + this.state.player_2_name + "!";
+  //   } else if (this.state.player == 1) {
+  //     text = this.state.player_2_name + " wins! You lose.";
+  //   } else {
+  //     text = this.state.player_2_name + " wins!";
+  //   }
+  // }
+
   if (this.state.player_1_score >= 6 && this.state.player_1_score - this.state.player_2_score >= 2) {
     this.state.volley_state = "ended";
-    show = true;
-    character = this.state.player_1_name.substring(0,1);
-
-    if (this.state.player == 1) {
+    if (this.player == 1) {
       this.multiplayer.finishGame(this.game_code, this.player, this.player)
-      text = "You win, " + this.state.player_1_name + "!";
-    } else if (this.state.player == 2) {
-      text = this.state.player_1_name + " wins! You lose.";
-    } else {
-      text = this.state.player_1_name + " wins!";
     }
+    this.showConclusion(1);
   } else if (this.state.player_2_score >= 6 && this.state.player_2_score - this.state.player_1_score >= 2) {
     this.state.volley_state = "ended";
-    show = true;
-    character = this.state.player_2_name.substring(0,1);
-
-    if (this.state.player == 2) {
+    if (this.player == 2) {
       this.multiplayer.finishGame(this.game_code, this.player, this.player)
-      text = "You win, " + this.state.player_2_name + "!";
-    } else if (this.state.player == 1) {
-      text = this.state.player_2_name + " wins! You lose.";
-    } else {
-      text = this.state.player_2_name + " wins!";
     }
-  }
-
-  if (show) {
-    self.showConclusion(text, character, function() {
-      self.resetTitle();
-      self.animateSceneSwitch(self.current_scene, "title");
-    })
+    this.showConclusion(2);
   }
 }
 
 
 Game.prototype.finishCoop = function(update_others) {
   var self = this;
-  var text = "Time's up! You got " + this.state.player_1_score + " volleys!";
-  var character = "A"; // meh?
 
   this.state.volley_state = "ended";
-
 
   if (update_others == true) {
     console.log("Updating others about finish game");
     this.multiplayer.finishGame(this.game_code, this.player, this.player);
   }
 
-  this.showConclusion(text, character, function() {
-    self.resetTitle();
-    self.animateSceneSwitch(self.current_scene, "title");
-  });
+  // this.showConclusion(text, character, function() {
+  //   self.resetTitle();
+  //   self.animateSceneSwitch(self.current_scene, "title");
+  // });
+  self.showConclusion(3);
 }
 
 
@@ -334,6 +341,13 @@ Game.prototype.setupVolley = function(new_volley_state) {
     turn = this.state.turn == 1 ? 2 : 1;
   }
 
+  var player_1_score = this.state.player_1_score;
+  var player_2_score = this.state.player_2_score;
+  if (new_volley_state == "start_volley") {
+    player_1_score = 0;
+    player_2_score = 0;
+  }
+
   console.log("From here i update the state when i setup volley in setupvolley")
   this.multiplayer.update({
     origin: origin,
@@ -341,6 +355,8 @@ Game.prototype.setupVolley = function(new_volley_state) {
     volley: origin,
     live_word: origin,
     turn: turn,
+    player_1_score: player_1_score,
+    player_2_score: player_2_score,
     volley_state: new_volley_state, // should be start_volley or reset_volley
   });
 }
@@ -397,16 +413,16 @@ Game.prototype.volleyStateInteractive = function() {
   // }, Math.max(30, this.state.time_limit * 1000 - 7000));
 
   if (this.player == this.state.turn) {
-    for (var i = 0; i < this.letterPalette.length; i++) {
-      this.letterPalette[i].enable();
+    for (var i = 0; i < this.letter_palette.letters.length; i++) {
+      this.letter_palette.letters[i].enable();
     }
     this.live_word_letter_choice = 0
     for (var i = 0; i < this.live_word_letters.length; i++) {
       this.live_word_letters[i].backing.tint = (i == this.live_word_letter_choice ? 0xf1e594 : 0xFFFFFF);
     }
   } else {
-    for (var i = 0; i < this.letterPalette.length; i++) {
-      this.letterPalette[i].disable();
+    for (var i = 0; i < this.letter_palette.letters.length; i++) {
+      this.letter_palette.letters[i].disable();
     }
     for (var i = 0; i < this.live_word_letters.length; i++) {
       this.live_word_letters[i].backing.tint = 0xFFFFFF;
@@ -426,9 +442,9 @@ Game.prototype.volleyStateMiss = function() {
 
     if (this.state.game_type != "code_coop") {
       if (this.player == 1) {
-        player_2_score += 1;
+        player_2_score += 6;
       } else if (this.player == 2) {
-        player_1_score += 1;
+        player_1_score += 6;
       }
     }
 
@@ -585,13 +601,13 @@ Game.prototype.setLiveWord = function() {
       this.live_word_letters[i].text.text = this.state.live_word[i];
       this.live_word_letters[i].backing.tint = (i == this.live_word_letter_choice ? 0xf1e594 : 0xFFFFFF);
     }
-    this.liveWordContainer.visible = true;
+    this.live_word_container.visible = true;
   } else {
     for (var i = 0; i < this.live_word_letters.length; i++) {
       this.live_word_letters[i].text.text = this.state.live_word[i];
       this.live_word_letters[i].backing.tint = 0xFFFFFF;
     }
-    this.liveWordContainer.visible = false;
+    this.live_word_container.visible = false;
   }
 }
 

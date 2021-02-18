@@ -71,12 +71,9 @@ class Game {
 
     this.conclusionMask = new PIXI.Container();
     pixi.stage.addChild(this.conclusionMask);
-    this.conclusionBox = new PIXI.Container();
-    pixi.stage.addChild(this.conclusionBox);
 
     this.initializeTitleScreen();
     this.initializeAlertBox();
-    this.initializeConclusionBox();
   }
 
 
@@ -201,6 +198,32 @@ class Game {
   }
 
 
+  requestRematch() {
+
+    if (this.player == 1) {
+      this.multiplayer.update({
+        player_1_state: "joined",
+        origin: "",
+        target: "",
+        live_word: "",
+        volley_state: "none",
+      })
+    } else if (this.player == 2) {
+      this.multiplayer.update({
+        player_2_state: "joined",
+        origin: "",
+        target: "",
+        live_word: "",
+        volley_state: "none",
+      })
+    }
+
+    this.lobby_ready_button.enable();
+
+    this.animateSceneSwitch("volley", "lobby");
+  }
+
+
   animateSceneSwitch(old_scene, new_scene) {
     console.log("switching from " + old_scene + " to " + new_scene);
     var direction = -1;
@@ -247,39 +270,48 @@ class Game {
   }
 
 
-  showConclusion(text, character, action) {
+  showConclusion(winner) {
     var self = this;
 
-    this.conclusionBox.conclusionText.text = text;
-    if (this.conclusionBox.conclusionCharacter.length != 0) {
-      this.conclusionBox.removeChild(this.conclusionBox.conclusionCharacter[0]);
-      this.conclusionBox.removeChild(this.conclusionBox.conclusionCharacter[1]);
-      this.conclusionBox.removeChild(this.conclusionBox.conclusionCharacter[2]);
-    }
-    // TO DO USE CHARACTERS HERE
-    // TO DO WATCHER DOESN'T NEED A READY BUTTON
-    // TO DO SHOW RULES IN THE MIDDLE
-    this.conclusionBox.conclusionCharacter = [];
-    for (var i = 0; i < 3; i++) {
-      this.conclusionBox.conclusionCharacter[i] = new PIXI.Sprite(PIXI.Texture.from("Art/title_left.png"));
-      this.conclusionBox.conclusionCharacter[i].position.set(-200 + 200 * i, 80);
-      this.conclusionBox.conclusionCharacter[i].anchor.set(0.5, 0.5);
-      this.conclusionBox.addChild(this.conclusionBox.conclusionCharacter[i]);
+    var text;
+
+    if (winner == 3) {
+      text = "Time's up! You got " + this.state.player_1_score + " volleys!";
+    } else if (winner == 1) {
+      if (this.player == 1) {
+        text = "You win, " + this.state.player_1_name + "!";
+      } else if (this.player == 2) {
+        text = this.state.player_1_name + " wins! You lose.";
+      } else {
+        text = this.state.player_1_name + " wins!";
+      }
+    } else if (winner == 2) {
+      if (this.player == 2) {
+        text = "You win, " + this.state.player_2_name + "!";
+      } else if (this.player == 1) {
+        text = this.state.player_2_name + " wins! You lose.";
+      } else {
+        text = this.state.player_2_name + " wins!";
+      }
     }
 
-    this.conclusionBox.on("click", function() {
-      action();
-      self.conclusionBox.visible = false
-      self.conclusionMask.visible = false
-    });
-    this.conclusionBox.visible = true;
-    this.conclusionMask.visible = true;
-    new TWEEN.Tween(this.conclusionBox)
-      .to({rotation: Math.PI / 60.0})
-      .duration(70)
-      .yoyo(true)
-      .repeat(3)
-      .start()
+    this.volley.info_text.visible = false;
+    this.volley.coop_score.visible = false;
+    this.volley.hint_text.visible = false;
+    this.volley.back_arrow.visible = false;
+    this.play_button.visible = false;
+    this.letter_palette.visible = false;
+    this.ball.visible = false;
+    this.live_word_container.visible = false;
+    this.red_underline.visible = false;
+    this.blue_underline.visible = false;
+
+    this.conclusion_text.text = text;
+    this.conclusion_text.visible = true;
+
+    this.conclusion_rematch_button.visible = true;
+    this.conclusion_quit_button.visible = true;
+  
   }
 
 
@@ -326,24 +358,31 @@ class Game {
 
 
   makeLetterPalette(parent, x, y, action) {
-    var palette = [];
+    var palette = new PIXI.Container();
+    parent.addChild(palette);
+    palette.position.set(x, y);
+
+    palette.letters = [];
+
     var mat = PIXI.Sprite.from(PIXI.Texture.WHITE);
     mat.width = 13 * 80;
     mat.height = 160;
     mat.anchor.set(0.5, 0.5);
-    mat.position.set(x - 80,y);
+    mat.position.set(-80, 0);
     mat.tint = 0xCCCCCC;
-    parent.addChild(mat)
+    palette.addChild(mat)
+
     var letters = [];
     var size = 80;
     letters[0] = ["A", "B", "C", "D", "E", "F", "G", "H", "I", "J", "K", "L", "M"];
     letters[1] = ["N", "O", "P", "Q", "R", "S", "T", "U", "V", "W", "X", "Y", "Z"];
+
     for (var h = 0; h < 2; h++) {
       for (var i = 0; i < 13; i++) {
         let letter = letters[h][i];
         var button = this.makeButton(
-          parent,
-          x - 7*size + i*size, y + (h == 0 ? -size/2 : size/2),
+          palette,
+          -7*size + i*size, (h == 0 ? -size/2 : size/2),
           letter, size, 6, 0x000000,
           size, size, ((i+h) % 2 == 0 ? 0xF0F0F0 : 0xFFFFFF),
           //((i+h) % 2 == 0 ? 0xf1e594 : 0xFFFFFF)
@@ -368,7 +407,7 @@ class Game {
             }
           }
         );
-        palette.push(button);
+        palette.letters.push(button);
       }
     }
     return palette;

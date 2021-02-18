@@ -21,6 +21,7 @@ Game.prototype.backArrow = function(current, old, action=null) {
     self.animateSceneSwitch(current, old)
   });
   this.scenes[current].addChild(arrow);
+  return arrow;
 }
 
 var character_names = [
@@ -88,6 +89,29 @@ Game.prototype.initializeTitleScreen = function() {
   // Make the title screen layout
   
   var self = this;
+
+  // Sign in button
+  this.sign_in_button = this.makeButton(
+    this.scenes["title"],
+    this.width - 90, this.height - 50,
+    "SIGN IN", 24, 6, 0xFFFFFF,
+    120, 40, 0x3cb0f3,
+    function() {
+      self.multiplayer.googleSignIn();
+    }
+  );
+
+  this.sign_out_button = this.makeButton(
+    this.scenes["title"],
+    this.width - 90, this.height - 50,
+    "SIGN OUT", 24, 6, 0xFFFFFF,
+    120, 40, 0x3cb0f3,
+    function() {
+      self.multiplayer.signOut();
+    }
+  );
+  this.sign_out_button.disable();
+  this.sign_out_button.visible = false;
 
 
   // FOUR SQUARE LAYOUT
@@ -168,7 +192,11 @@ Game.prototype.initializeTitleScreen = function() {
     "QUICKPLAY", 44, 6, 0x000000,
     224, 80, 0x71d07d,
     function() {
-      self.quickPlayGame();
+      if (self.auth_user == null) {
+        self.multiplayer.anonymousSignIn(function() {self.quickPlayGame()});
+      } else {
+        self.quickPlayGame();
+      }
     }
   );
 

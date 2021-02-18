@@ -2,7 +2,7 @@
 
 Game.prototype.initializeVolleyScreen = function() {
   var self = this;
-
+  console.log("Initializing volley screen");
   this.clearScene(this.scenes["volley"]);
 
   this.volley = [];
@@ -73,13 +73,12 @@ Game.prototype.initializeVolleyScreen = function() {
   this.scenes["volley"].addChild(this.volley.hint_text);
   this.volley.hint_text.visible = false;
 
-  this.backArrow("volley", "title", function() {
+  this.volley.back_arrow = this.backArrow("volley", "title", function() {
     self.multiplayer.leaveGame(self.game_code, self.player)
     self.resetTitle();
   });
 
-
-  // this will have to be redone to fit letter size
+  console.log("I am remaking the live word container");
   this.remakeLiveWordContainer();
 
   this.play_button = this.makeButton(
@@ -98,7 +97,7 @@ Game.prototype.initializeVolleyScreen = function() {
   this.play_button.addChild(this.play_button.racket_sprite);
   this.play_button.visible = false;
 
-  this.letterPalette = this.makeLetterPalette(this.scenes["volley"], this.width * 9/16, this.height * 14/16, function(letter) {
+  this.letter_palette = this.makeLetterPalette(this.scenes["volley"], this.width * 9/16, this.height * 14/16, function(letter) {
     if (self.state.volley_state == "interactive") {
       self.live_word_letters[self.live_word_letter_choice].text.text = letter;
       // underline the bads 
@@ -127,8 +126,8 @@ Game.prototype.initializeVolleyScreen = function() {
       }
     }
   });
-  for (var i = 0; i < this.letterPalette.length; i++) {
-    this.letterPalette[i].disable();
+  for (var i = 0; i < this.letter_palette.letters.length; i++) {
+    this.letter_palette.letters[i].disable();
   }
 
   this.ball = new Ball(
@@ -139,17 +138,50 @@ Game.prototype.initializeVolleyScreen = function() {
   this.ball.addWord(this.state.volley) // assuming volley is equal to the first word at time of creation
   this.ball.hide();
 
+  this.conclusion_text = new PIXI.Text("EH. OKAY.", {fontFamily: "Bebas Neue", fontSize: 64, fill: 0x000000, letterSpacing: 6, align: "center"});
+  this.conclusion_text.anchor.set(0.5,0.5);
+  this.conclusion_text.position.set(this.width * 1/2, this.height * 7/16);
+  this.scenes["volley"].addChild(this.conclusion_text);
+  this.conclusion_text.visible = false;
+
+  this.conclusion_rematch_button = this.makeButton(
+    this.scenes["volley"],
+    this.width * 2/6, this.height * 5/6,
+    "REMATCH", 44, 6, 0xFFFFFF,
+    224, 80, 0x3cb0f3,
+    function() {
+      self.requestRematch();
+      // self.initializeSetupCreate();
+      // self.animateSceneSwitch("title", "setup_create")
+    }
+  );
+  this.conclusion_rematch_button.visible = false;
+
+  this.conclusion_quit_button = this.makeButton(
+    this.scenes["volley"],
+    this.width * 4/6, this.height * 5/6,
+    "QUIT", 44, 6, 0x000000,
+    224, 80, 0xf3db3c,
+    function() {
+      self.multiplayer.leaveGame(self.game_code, self.player);
+      self.resetTitle();
+      self.animateSceneSwitch("volley", "title");
+      // self.initializeSetupCreate();
+      // self.animateSceneSwitch("title", "setup_create")
+    }
+  );
+  this.conclusion_quit_button.visible = false;
 }
 
 Game.prototype.remakeLiveWordContainer = function() {
   var self = this;
-  this.scenes["volley"].removeChild(this.liveWordContainer);
+  this.scenes["volley"].removeChild(this.live_word_container);
   this.scenes["volley"].removeChild(this.red_underline);
   this.scenes["volley"].removeChild(this.blue_underline);
   
   this.live_word_letters = [];
-  this.liveWordContainer = new PIXI.Container();
-  this.scenes["volley"].addChild(this.liveWordContainer);
+  this.live_word_container = new PIXI.Container();
+  this.scenes["volley"].addChild(this.live_word_container);
 
   var length = 5;
   var turn = false;
@@ -162,7 +194,7 @@ Game.prototype.remakeLiveWordContainer = function() {
   for (var i = 0; i < length; i++) {
     let choice_num = i;
     this.live_word_letters.push(this.makeButton(
-      this.liveWordContainer,
+      this.live_word_container,
       this.width * 1/2 - (50*(length - 1)) + 100*i , this.height * 7/16,
       "", 100, 6, 0x000000,
       98, 100, ((turn && i == 0) ? 0xf1e594 : 0xFFFFFF),
@@ -188,7 +220,7 @@ Game.prototype.remakeLiveWordContainer = function() {
       }
     ));
   }
-  this.liveWordContainer.visible = false;
+  this.live_word_container.visible = false;
   // for (var i = 0; i < this.live_word_letters.length; i++) {
   //   this.live_word_letters[i].visible = false;
   // }
@@ -208,58 +240,58 @@ Game.prototype.remakeLiveWordContainer = function() {
   this.blue_underline.visible = false;
 }
 
-Game.prototype.initializeConclusionBox = function() {
-  this.conclusionBox.position.set(this.width / 2, this.height / 2);
-  this.conclusionBox.visible = false;
+// Game.prototype.initializeConclusionBox = function() {
+//   this.conclusionBox.position.set(this.width / 2, this.height / 2);
+//   this.conclusionBox.visible = false;
 
-  this.conclusionMask.position.set(this.width / 2, this.height / 2);
-  this.conclusionMask.visible = false;
-  this.conclusionMask.interactive = true;
-  this.conclusionMask.buttonMode = true;
-  this.conclusionMask.on("click", function() {
-  });
+//   this.conclusionMask.position.set(this.width / 2, this.height / 2);
+//   this.conclusionMask.visible = false;
+//   this.conclusionMask.interactive = true;
+//   this.conclusionMask.buttonMode = true;
+//   this.conclusionMask.on("click", function() {
+//   });
 
-  this.conclusionBox.conclusionCharacter = [];
+//   this.conclusionBox.conclusionCharacter = [];
 
-  var mask = PIXI.Sprite.from(PIXI.Texture.WHITE);
-  mask.width = this.width;
-  mask.height = this.height;
-  mask.anchor.set(0.5, 0.5);
-  mask.alpha = 0.2;
-  mask.tint = 0x000000;
-  this.conclusionMask.addChild(mask);
+//   var mask = PIXI.Sprite.from(PIXI.Texture.WHITE);
+//   mask.width = this.width;
+//   mask.height = this.height;
+//   mask.anchor.set(0.5, 0.5);
+//   mask.alpha = 0.2;
+//   mask.tint = 0x000000;
+//   this.conclusionMask.addChild(mask);
 
-  var outline = PIXI.Sprite.from(PIXI.Texture.WHITE);
-  outline.width = this.width * 3/5;
-  outline.height = this.height * 3/5;
-  outline.anchor.set(0.5, 0.5);
-  outline.position.set(-1, -1);
-  outline.tint = 0xDDDDDD;
-  this.conclusionBox.addChild(outline);
+//   var outline = PIXI.Sprite.from(PIXI.Texture.WHITE);
+//   outline.width = this.width * 3/5;
+//   outline.height = this.height * 3/5;
+//   outline.anchor.set(0.5, 0.5);
+//   outline.position.set(-1, -1);
+//   outline.tint = 0xDDDDDD;
+//   this.conclusionBox.addChild(outline);
 
-  for (var i = 0; i < 4; i++) {
-    var backingGrey = PIXI.Sprite.from(PIXI.Texture.WHITE);
-    backingGrey.width = this.width * 3/5;
-    backingGrey.height = this.height * 3/5;
-    backingGrey.anchor.set(0.5, 0.5);
-    backingGrey.position.set(4 - i, 4 - i);
-    backingGrey.tint = PIXI.utils.rgb2hex([0.8 - 0.1*i, 0.8 - 0.1*i, 0.8 - 0.1*i]);
-    this.conclusionBox.addChild(backingGrey);
-  }
+//   for (var i = 0; i < 4; i++) {
+//     var backingGrey = PIXI.Sprite.from(PIXI.Texture.WHITE);
+//     backingGrey.width = this.width * 3/5;
+//     backingGrey.height = this.height * 3/5;
+//     backingGrey.anchor.set(0.5, 0.5);
+//     backingGrey.position.set(4 - i, 4 - i);
+//     backingGrey.tint = PIXI.utils.rgb2hex([0.8 - 0.1*i, 0.8 - 0.1*i, 0.8 - 0.1*i]);
+//     this.conclusionBox.addChild(backingGrey);
+//   }
 
-  var backingWhite = PIXI.Sprite.from(PIXI.Texture.WHITE);
-  backingWhite.width = this.width * 3/5;
-  backingWhite.height = this.height * 3/5;
-  backingWhite.anchor.set(0.5, 0.5);
-  backingWhite.position.set(0,0);
-  backingWhite.tint = 0xFFFFFF;
-  this.conclusionBox.addChild(backingWhite);
+//   var backingWhite = PIXI.Sprite.from(PIXI.Texture.WHITE);
+//   backingWhite.width = this.width * 3/5;
+//   backingWhite.height = this.height * 3/5;
+//   backingWhite.anchor.set(0.5, 0.5);
+//   backingWhite.position.set(0,0);
+//   backingWhite.tint = 0xFFFFFF;
+//   this.conclusionBox.addChild(backingWhite);
 
-  this.conclusionBox.conclusionText = new PIXI.Text("EH. OKAY.", {fontFamily: "Bebas Neue", fontSize: 48, fill: 0x000000, letterSpacing: 6, align: "center"});
-  this.conclusionBox.conclusionText.anchor.set(0.5,0.5);
-  this.conclusionBox.conclusionText.position.set(0, -160);
-  this.conclusionBox.addChild(this.conclusionBox.conclusionText);
+//   this.conclusionBox.conclusionText = new PIXI.Text("EH. OKAY.", {fontFamily: "Bebas Neue", fontSize: 48, fill: 0x000000, letterSpacing: 6, align: "center"});
+//   this.conclusionBox.conclusionText.anchor.set(0.5,0.5);
+//   this.conclusionBox.conclusionText.position.set(0, -160);
+//   this.conclusionBox.addChild(this.conclusionBox.conclusionText);
 
-  this.conclusionBox.interactive = true;
-  this.conclusionBox.buttonMode = true;
-}
+//   this.conclusionBox.interactive = true;
+//   this.conclusionBox.buttonMode = true;
+// }

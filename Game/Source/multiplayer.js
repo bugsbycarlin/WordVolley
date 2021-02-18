@@ -42,7 +42,7 @@ class Multiplayer {
 
     // Quick play defaults
     var word_size = 4;
-    var time_limit = 10;
+    var time_limit = 5; // 10
 
     var type = game.choices["GAME TYPE"];
     var difficulty = game.choices["DIFFICULTY"];
@@ -216,9 +216,11 @@ class Multiplayer {
       if (player == 1 && player == winner) {
         sheet["player_1_state"] = "win";
         sheet["player_2_state"] = "ended";
+        sheet["volley_state"] = "ended";
       } else if (player == 2 && player == winner) {
         sheet["player_2_state"] = "win";
         sheet["player_1_state"] = "ended";
+        sheet["volley_state"] = "ended";
       }
       // } else if (player == 1) {
       //   sheet["player_1_state"] = "ended";
@@ -258,5 +260,59 @@ class Multiplayer {
 
   update(sheet) {
     this.database.ref("games/" + this.game.game_code).update(sheet);
+  }
+
+  googleSignIn() {
+    var self = this;
+    var provider = new firebase.auth.GoogleAuthProvider();
+    console.log(provider);
+    firebase.auth()
+      .signInWithPopup(provider)
+      .then((result) => {
+        /** @type {firebase.auth.OAuthCredential} */
+
+        var credential = result.credential;
+        var token = credential.accessToken;
+        var user = result.user;
+
+        self.game.auth_user = user;
+
+        self.game.sign_in_button.disable();
+        self.game.sign_in_button.visible = false;
+        self.game.sign_out_button.enable();
+        self.game.sign_out_button.visible = true;
+        // ...
+      }).catch((error) => {
+        console.log("Error with google sign in!")
+        console.log(error);
+      });
+  }
+
+  anonymousSignIn(callback) {
+    console.log("Using anonymous sign in");
+    var self = this;
+    firebase.auth().signInAnonymously()
+      .then(() => {
+        callback();
+      })
+      .catch((error) => {
+        console.log("Error with anonymous sign in!")
+        console.log(error);
+      });
+
+  }
+
+  signOut() {
+    var self = this;
+    firebase.auth().signOut().then(() => {
+      self.game.sign_out_button.disable();
+      self.game.sign_out_button.visible = false;
+      self.game.sign_in_button.enable();
+      self.game.sign_in_button.visible = true;
+      self.game.auth_user = null;
+    }).catch((error) => {
+      console.log("Error signing out!");
+      console.log(error);
+    });
   }
 }
