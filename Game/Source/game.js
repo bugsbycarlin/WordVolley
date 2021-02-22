@@ -1,6 +1,22 @@
 
 pixi = null;
 
+function detectMob() {
+  const toMatch = [
+      /Android/i,
+      /webOS/i,
+      /iPhone/i,
+      /iPad/i,
+      /iPod/i,
+      /BlackBerry/i,
+      /Windows Phone/i
+  ];
+
+  return toMatch.some((toMatchItem) => {
+      return navigator.userAgent.match(toMatchItem);
+  });
+}
+
 class Game {
   constructor() {
 
@@ -11,10 +27,16 @@ class Game {
     // Browser and iphone are 1280x720, and ipad is 1280x960.
     this.width = 1280;
     this.height = 720;
-    if (false) {
-      this.height = 960;
-      document.getElementById("mainDiv").style.height = 960;
-      document.getElementById("mainDiv").style.marginTop = -480;
+    // if (detectMob()) {
+    //   this.height = 960;
+    //   document.getElementById("mainDiv").style.height = 960;
+    //   document.getElementById("mainDiv").style.marginTop = -480;
+    // }
+    if (detectMob()) {
+      this.width = 600;
+      this.height = 768;
+      document.getElementById("mainDiv").style.width = 1024;
+      document.getElementById("mainDiv").style.marginLeft = -512;
     }
 
     this.loadWords()
@@ -254,7 +276,7 @@ class Game {
   showAlert(text, action) {
     var self = this;
     this.alertBox.alertText.text = text;
-    this.alertBox.on("click", function() {
+    this.alertBox.on("pointertap", function() {
       action();
       self.alertBox.visible = false
       self.alertMask.visible = false
@@ -341,7 +363,7 @@ class Game {
     button.interactive = true;
     button.buttonMode = true;
     button.hitArea = button.backing.hitArea;
-    button.on("click", action);
+    button.on("pointertap", action);
 
     button.disable = function() {
       this.fronting.visible = true;

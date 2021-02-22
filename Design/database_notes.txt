@@ -650,3 +650,104 @@ Now I'm going to add auth rules to the database rule set.
     }
   }
 }
+
+
+
+I don't want the whole database readable. Moving read to games.
+
+
+{
+  "rules": {
+    ".read": "auth != null",
+    ".write": "auth != null",
+    "games": {
+      ".read": "auth != null",
+      ".write": "!data.exists() && auth != null",
+      ".indexOn": ["timestamp", "player_1_state", "player_2_state", "game_type"],
+      "$game_name": {
+        ".validate": "$game_name.matches(/^[A-Z]{5}$/) && newData.hasChildren([
+          'game_type', // quick_open, quick_closed, code_comp, code_coop
+          'player_1_state',   // empty, joined, ready, quit
+          'player_2_state', // empty, joined, ready, quit
+          'player_1_name',
+          'player_2_name',
+          'player_1_score',
+          'player_2_score',
+          'time_limit',
+          'word_size',
+          'origin',
+          'target',
+          'volley',
+          'turn',
+          'live_word',
+          'volley_state',
+          'timestamp'
+        ])",
+        "game_type": {
+          ".write": true,
+          ".validate": "newData.val() == 'quick_open' || newData.val() == 'quick_closed' || newData.val() == 'code_comp' || newData.val() == 'code_coop'",
+        },
+        "player_1_state": {
+          ".write": true,
+          ".validate": "newData.val() == 'empty' || newData.val() == 'joined' || newData.val() == 'ready' || newData.val() == 'quit' || newData.val() == 'win' || newData.val() == 'ended'",
+        },
+        "player_2_state": {
+          ".write": true,
+          ".validate": "newData.val() == 'empty' || newData.val() == 'joined' || newData.val() == 'ready' || newData.val() == 'quit' || newData.val() == 'win' || newData.val() == 'ended'",
+        },
+        "player_1_name": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{1,8}$/)",
+        },
+        "player_2_name": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{1,8}$/)",
+        },
+        "player_1_score": {
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0.0 && newData.val() >= 0",
+        },
+        "player_2_score": {
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0.0 && newData.val() >= 0",
+        },
+        "time_limit": {
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0.0 && newData.val() >= 0",
+        },
+        "word_size": {
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0.0 && newData.val() >= 0",
+        },
+        "origin": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{0,8}$/)",
+        },
+        "target": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{0,8}$/)",
+        },
+        "volley": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z-]*$/)",
+        },
+        "turn": {
+          ".write": true,
+          ".validate": "newData.isNumber() && newData.val() % 1 === 0.0 && newData.val() >= 0",
+        },
+        "live_word": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[A-Z]{0,8}$/)",
+        },
+        "volley_state": {
+          ".write": true,
+          ".validate": "newData.val().matches(/^[a-z_]{0,40}$/)",
+        },
+        "timestamp": {
+          ".write": true,
+          ".validate": "newData.val() == now",
+        }
+      }
+    }
+  }
+}

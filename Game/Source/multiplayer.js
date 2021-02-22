@@ -23,26 +23,9 @@ class Multiplayer {
     var self = this;
     var game_code = this.generateGameCode();
 
-    // var time_limits = {
-    //   0: 5,
-    //   1: 10,
-    //   2: 20,
-    //   3: 30,
-    //   4: 60,
-    //   5: 300,
-    //   6: -1
-    // };
-    // var word_sizes = {
-    //   0: 4,
-    //   1: 5,
-    //   2: 6,
-    //   3: 7,
-    //   4: 1,
-    // };
-
     // Quick play defaults
     var word_size = 4;
-    var time_limit = 5; // 10
+    var time_limit = 10; // 10, 5 for fast testing
 
     var type = game.choices["GAME TYPE"];
     var difficulty = game.choices["DIFFICULTY"];
@@ -64,7 +47,7 @@ class Multiplayer {
 
       if (difficulty == "EASY") {
         word_size = 4;
-        time_limit = 30; // 120
+        time_limit = 120; // 120, 30 for fast testing
       } else if (difficulty == "MEDIUM") {
         word_size = 1;
         time_limit = 60;
@@ -93,13 +76,14 @@ class Multiplayer {
       volley_state: "none",
       timestamp: firebase.database.ServerValue.TIMESTAMP,
     };
+    console.log(game.state);
 
     this.database.ref("/games/" + game_code).set(game.state, (error) => {
       if (error) {
         console.log("Failed to create game " + game_code + " on try number " + tries_left);
         console.log(error);
         if (tries_left > 0) {
-          self.createNewGame(callback, tries_left - 1)
+          self.createNewGame(game_type, tries_left - 1, callback)
         } else {
           self.game.showAlert("Sorry! I could'nt make\na game. Please try later.", function() {});
         }
@@ -166,6 +150,7 @@ class Multiplayer {
   quickPlayGame(tries_left, yes_callback, no_callback) {
     var self = this;
     this.database.ref().child("games").orderByChild("game_type").equalTo("quick_open").limitToLast(20).once("value").then((result) => {
+      console.log(result);
       if (result.exists()) {
         self.game.player = 2;
         console.log("Found quick play games to join.");

@@ -1,0 +1,62 @@
+
+letter_a_character.png
+size: 649,518
+format: RGBA8888
+filter: Linear,Linear
+repeat: none
+A
+  rotate: false
+  xy: 518, 339
+  size: 97, 177
+  orig: 514, 514
+  offset: 208, 150
+  index: -1
+Back Arm
+  rotate: true
+  xy: 591, 5
+  size: 44, 56
+  orig: 514, 514
+  offset: 186, 205
+  index: -1
+Face 1
+  rotate: true
+  xy: 518, 90
+  size: 69, 61
+  orig: 514, 514
+  offset: 220, 274
+  index: -1
+Face 2
+  rotate: true
+  xy: 518, 34
+  size: 54, 71
+  orig: 514, 514
+  offset: 233, 272
+  index: -1
+Face 3
+  rotate: false
+  xy: 591, 51
+  size: 53, 59
+  orig: 514, 514
+  offset: 232, 275
+  index: -1
+Face 4
+  rotate: true
+  xy: 581, 112
+  size: 47, 62
+  orig: 514, 514
+  offset: 233, 273
+  index: -1
+Face 5
+  rotate: false
+  xy: 2, 2
+  size: 514, 514
+  orig: 514, 514
+  offset: 0, 0
+  index: -1
+Front Arm
+  rotate: false
+  xy: 518, 161
+  size: 96, 176
+  orig: 514, 514
+  offset: 234, 256
+  index: -1

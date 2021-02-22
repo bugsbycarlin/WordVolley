@@ -144,18 +144,33 @@ Game.prototype.initializeVolleyScreen = function() {
   this.scenes["volley"].addChild(this.conclusion_text);
   this.conclusion_text.visible = false;
 
-  this.conclusion_rematch_button = this.makeButton(
-    this.scenes["volley"],
-    this.width * 2/6, this.height * 5/6,
-    "REMATCH", 44, 6, 0xFFFFFF,
-    224, 80, 0x3cb0f3,
-    function() {
-      self.requestRematch();
-      // self.initializeSetupCreate();
-      // self.animateSceneSwitch("title", "setup_create")
-    }
-  );
-  this.conclusion_rematch_button.visible = false;
+  if (this.player == 1 || this.player == 2) {
+    this.conclusion_rematch_button = this.makeButton(
+      this.scenes["volley"],
+      this.width * 2/6, this.height * 5/6,
+      "REMATCH", 44, 6, 0xFFFFFF,
+      224, 80, 0x3cb0f3,
+      function() {
+        self.requestRematch();
+        // self.initializeSetupCreate();
+        // self.animateSceneSwitch("title", "setup_create")
+      }
+    );
+    this.conclusion_rematch_button.visible = false;
+  } else {
+    this.conclusion_rematch_button = this.makeButton(
+      this.scenes["volley"],
+      this.width * 2/6, this.height * 5/6,
+      "WATCH MO", 44, 6, 0xFFFFFF,
+      224, 80, 0x3cb0f3,
+      function() {
+        self.requestRematch();
+        // self.initializeSetupCreate();
+        // self.animateSceneSwitch("title", "setup_create")
+      }
+    );
+    this.conclusion_rematch_button.visible = false;
+  }
 
   this.conclusion_quit_button = this.makeButton(
     this.scenes["volley"],

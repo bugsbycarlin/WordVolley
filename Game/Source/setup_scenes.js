@@ -14,7 +14,7 @@ Game.prototype.backArrow = function(current, old, action=null) {
   arrow.scale.set(0.4, 0.4);
   arrow.interactive = true;
   arrow.buttonMode = true;
-  arrow.on("click", function() {
+  arrow.on("pointertap", function() {
     if (action != null) {
       action();
     }
@@ -64,7 +64,7 @@ Game.prototype.changeCharacterArrow = function(scene, player, direction, x, y) {
   }
   arrow.interactive = true;
   arrow.buttonMode = true;
-  arrow.on("click", function() {
+  arrow.on("pointertap", function() {
     var alphabetArray = alphabet.split('');
     if (player == 1) {
       var old_character = self.state.player_1_name.substring(0,1);
@@ -176,6 +176,16 @@ Game.prototype.initializeTitleScreen = function() {
   title_left.anchor.set(0.5, 0.5);
   this.scenes["title"].addChild(title_left);
 
+  // PIXI.Loader.shared.add('letter_a', 'Art/Letter_A/letter_a_character.json').load(function (loader, resources) {
+  //   var title_left = new PIXI.spine.Spine(resources.letter_a.spineData);
+  //   title_left.position.set(self.width * 1/8, self.height * 5/16);
+  //   // title_left.anchor.set(0.5, 0.5);
+  //   self.scenes["title"].addChild(title_left);
+
+  //   // var animation = new PIXI.spine.Spine(spineBoyData);
+  //   title_left.state.setAnimation(0, 'jumpy', true);
+  // });
+
   var title_right = new PIXI.Sprite(PIXI.Texture.from("Art/title_right.png"));
   title_right.position.set(this.width * 7/8, this.height * 5/16);
   title_right.anchor.set(0.5, 0.5);
@@ -244,7 +254,11 @@ Game.prototype.initializeSetupCreate = function() {
     "CREATE", 60, 6, 0xFFFFFF,
     256, 90, 0x3cb0f3,
     function() {
-      self.createGame()
+      if (self.auth_user == null) {
+        self.multiplayer.anonymousSignIn(function() {self.createGame()});
+      } else {
+        self.createGame()
+      }
     }
   );
   create_button.disable();
@@ -327,7 +341,11 @@ Game.prototype.initializeSetupJoin = function() {
       for (var i = 0; i < 5; i++) {
         potential_game_code += self.game_code_letters[i].text.text;
       }
-      self.joinGame(potential_game_code);
+      if (self.auth_user == null) {
+        self.multiplayer.anonymousSignIn(function() {self.joinGame(potential_game_code);});
+      } else {
+        self.joinGame(potential_game_code);
+      }
     }
   );
   join_button.disable();
@@ -390,7 +408,11 @@ Game.prototype.initializeSetupWatch = function() {
       for (var i = 0; i < 5; i++) {
         potential_game_code += self.game_code_letters[i].text.text;
       }
-      self.watchGame(potential_game_code);
+      if (self.auth_user == null) {
+        self.multiplayer.anonymousSignIn(function() {self.watchGame(potential_game_code);});
+      } else {
+        self.watchGame(potential_game_code);
+      }
     }
   );
   watch_button.disable();
@@ -438,7 +460,7 @@ Game.prototype.initializeAlertBox = function() {
   this.alertMask.visible = false;
   this.alertMask.interactive = true;
   this.alertMask.buttonMode = true;
-  this.alertMask.on("click", function() {
+  this.alertMask.on("pointertap", function() {
   });
 
 

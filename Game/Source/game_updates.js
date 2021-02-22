@@ -442,9 +442,9 @@ Game.prototype.volleyStateMiss = function() {
 
     if (this.state.game_type != "code_coop") {
       if (this.player == 1) {
-        player_2_score += 6;
+        player_2_score += 1;
       } else if (this.player == 2) {
-        player_1_score += 6;
+        player_1_score += 1;
       }
     }
 
